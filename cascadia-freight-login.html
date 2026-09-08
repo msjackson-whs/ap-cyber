@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in — Cascadia Freight</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#14202A;
+    --slate:#2E4256;
+    --mist:#C9D4DC;
+    --paper:#FAFBFB;
+    --line:#D6DDE2;
+    --amber:#D9A21B;
+    --red:#A8322C;
+    --text:#1D2A35;
+    --muted:#5D707F;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family:"Barlow","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--text);
+    background:var(--paper);
+    font-size:16px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .shell{display:flex;min-height:100vh}
+
+  /* ---------- identity panel ---------- */
+  .brandpane{
+    flex:0 0 42%;
+    background:var(--ink);
+    color:var(--mist);
+    padding:48px 44px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+  }
+  .mark{
+    display:inline-block;
+    border:none;
+    background:none;
+    padding:0;
+    text-align:left;
+    color:inherit;
+    cursor:default;
+    font-family:"Barlow Semi Condensed","Barlow",sans-serif;
+  }
+  .mark span{
+    display:block;
+    font-size:34px;
+    font-weight:600;
+    letter-spacing:.06em;
+    line-height:1.05;
+    color:#fff;
+  }
+  .mark span + span{color:var(--mist)}
+  .mark hr{
+    border:none;
+    height:3px;
+    width:56px;
+    background:var(--amber);
+    margin:14px 0 0;
+  }
+  .paneword{
+    max-width:34ch;
+    font-size:17px;
+    color:var(--mist);
+    margin:36px 0 0;
+  }
+  .ops{
+    border-top:1px solid rgba(201,212,220,.18);
+    padding-top:16px;
+    font-size:13.5px;
+    color:#8FA3B2;
+  }
+  .ops table{width:100%;border-collapse:collapse}
+  .ops td{padding:3px 0}
+  .ops td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+
+  /* ---------- login side ---------- */
+  .formpane{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:48px 32px;
+  }
+  .card{width:100%;max-width:400px}
+  .card h1{
+    font-size:26px;
+    font-weight:600;
+    margin:0 0 6px;
+    letter-spacing:-.01em;
+  }
+  .sub{color:var(--muted);margin:0 0 30px;font-size:15.5px}
+
+  .field{margin-bottom:18px}
+  .labelrow{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+  label{font-size:14.5px;font-weight:500;color:var(--text)}
+  input[type=text],input[type=password]{
+    width:100%;
+    padding:11px 13px;
+    font:inherit;
+    font-size:15.5px;
+    color:var(--text);
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:3px;
+  }
+  input:focus-visible,button:focus-visible,.info:focus-visible{
+    outline:2px solid var(--slate);
+    outline-offset:2px;
+  }
+  input:disabled{background:#F1F4F6;color:var(--muted)}
+
+  .info{
+    width:18px;height:18px;
+    border-radius:50%;
+    border:1.5px solid var(--muted);
+    background:none;
+    color:var(--muted);
+    font-size:12px;
+    font-weight:600;
+    line-height:1;
+    cursor:pointer;
+    padding:0;
+    position:relative;
+  }
+  .info[aria-expanded=true]{border-color:var(--slate);color:var(--slate)}
+  .policy{
+    position:absolute;
+    z-index:5;
+    left:0;
+    top:26px;
+    width:288px;
+    background:var(--slate);
+    color:#EAF0F4;
+    padding:14px 16px;
+    border-radius:4px;
+    font-size:13.5px;
+    line-height:1.45;
+    box-shadow:0 6px 20px rgba(20,32,42,.28);
+  }
+  .policy[hidden]{display:none}
+  .policy p{margin:0 0 8px;font-weight:600;color:#fff}
+  .policy ul{margin:0;padding-left:17px}
+  .policy li{margin-bottom:3px}
+  .policywrap{position:relative;display:inline-block}
+
+  .submit{
+    width:100%;
+    padding:12px;
+    font:inherit;
+    font-size:15.5px;
+    font-weight:600;
+    color:#fff;
+    background:var(--slate);
+    border:none;
+    border-radius:3px;
+    cursor:pointer;
+    margin-top:4px;
+  }
+  .submit:hover:not(:disabled){background:#25364a}
+  .submit:disabled{background:#93A6B4;cursor:not-allowed}
+
+  .status{margin-top:16px;font-size:14.5px;min-height:22px}
+  .status.bad{color:var(--red)}
+  .status.wait{color:var(--muted)}
+  .counter{
+    margin-top:22px;
+    padding-top:14px;
+    border-top:1px solid var(--line);
+    font-size:13.5px;
+    color:var(--muted);
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* ---------- dashboard ---------- */
+  #dash[hidden]{display:none}
+  .topbar{
+    background:var(--ink);
+    color:#fff;
+    padding:14px 32px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+  }
+  .topbar .wm{
+    font-family:"Barlow Semi Condensed","Barlow",sans-serif;
+    font-size:19px;
+    font-weight:600;
+    letter-spacing:.07em;
+  }
+  .who{font-size:14.5px;color:var(--mist)}
+  .who strong{color:#fff;font-weight:500}
+  .dashbody{max-width:940px;margin:0 auto;padding:40px 32px 64px}
+  .dashbody h2{font-size:23px;font-weight:600;margin:0 0 4px}
+  .dashbody .sub{margin-bottom:32px}
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:16px;
+  }
+  .tile{
+    background:#fff;
+    border:1px solid var(--line);
+    border-top:3px solid var(--slate);
+    border-radius:3px;
+    padding:18px 18px 20px;
+  }
+  .tile.hot{border-top-color:var(--amber)}
+  .tile h3{font-size:16.5px;font-weight:600;margin:0 0 10px}
+  .tile dl{margin:0;font-size:14px;color:var(--muted)}
+  .tile dl div{display:flex;justify-content:space-between;padding:2px 0}
+  .tile dd{margin:0;font-variant-numeric:tabular-nums;color:var(--text)}
+  .footnote{
+    margin-top:34px;
+    padding-top:16px;
+    border-top:1px solid var(--line);
+    font-size:14px;
+    color:var(--muted);
+    max-width:66ch;
+  }
+
+  @media (max-width:860px){
+    .shell{flex-direction:column}
+    .brandpane{flex:none;padding:32px 26px}
+    .paneword{margin-top:22px}
+    .ops{margin-top:26px}
+    .formpane{padding:36px 26px 56px}
+    .grid{grid-template-columns:repeat(2,1fr)}
+  }
+  @media (max-width:540px){
+    .grid{grid-template-columns:1fr}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none!important;animation:none!important}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div class="shell" id="login">
+  <div class="brandpane">
+    <div>
+      <button class="mark" id="mark" aria-label="Cascadia Freight">
+        <span>CASCADIA</span><span>FREIGHT</span>
+        <hr>
+      </button>
+      <p class="paneword">Single sign-on for terminal operations, accounts payable, and vendor management.</p>
+    </div>
+    <div class="ops">
+      <table>
+        <tr><td>Tacoma terminal</td><td>operating</td></tr>
+        <tr><td>Loads in transit</td><td>1,284</td></tr>
+        <tr><td>Portal build</td><td>7.4.2</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="formpane">
+    <div class="card">
+      <h1>Sign in</h1>
+      <p class="sub">Use your Cascadia Freight account.</p>
+
+      <div class="field">
+        <div class="labelrow"><label for="user">Username</label></div>
+        <input type="text" id="user" autocomplete="off" spellcheck="false" value="mreyes@cascadiafreight.com">
+      </div>
+
+      <div class="field">
+        <div class="labelrow">
+          <label for="pass">Password</label>
+          <span class="policywrap">
+            <button class="info" id="info" aria-expanded="false" aria-controls="policy" aria-label="Password requirements">i</button>
+            <div class="policy" id="policy" role="tooltip" hidden>
+              <p>Password requirements</p>
+              <ul>
+                <li>At least 10 characters</li>
+                <li>At least one capital letter</li>
+                <li>At least one number</li>
+                <li>At least one special character</li>
+              </ul>
+            </div>
+          </span>
+        </div>
+        <input type="password" id="pass" autocomplete="off">
+      </div>
+
+      <button class="submit" id="go">Sign in</button>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+      <p class="counter" id="counter">Attempts: 0</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ DASHBOARD ============ -->
+<div id="dash" hidden>
+  <div class="topbar">
+    <span class="wm">CASCADIA FREIGHT</span>
+    <span class="who">Signed in as <strong>Marisol Reyes</strong> — Accounts Payable</span>
+  </div>
+  <div class="dashbody">
+    <h2>Your applications</h2>
+    <p class="sub">Six applications are available to this account.</p>
+    <div class="grid">
+      <div class="tile hot">
+        <h3>Payment Requests</h3>
+        <dl>
+          <div><dt>Awaiting approval</dt><dd>18</dd></div>
+          <div><dt>Value pending</dt><dd>$2,417,900</dd></div>
+        </dl>
+      </div>
+      <div class="tile hot">
+        <h3>Vendor Directory</h3>
+        <dl>
+          <div><dt>Active vendors</dt><dd>412</dd></div>
+          <div><dt>Bank details on file</dt><dd>398</dd></div>
+        </dl>
+      </div>
+      <div class="tile hot">
+        <h3>Invoice Approvals</h3>
+        <dl>
+          <div><dt>Open invoices</dt><dd>63</dd></div>
+          <div><dt>Approval limit</dt><dd>$250,000</dd></div>
+        </dl>
+      </div>
+      <div class="tile">
+        <h3>Expense Reports</h3>
+        <dl>
+          <div><dt>Submitted</dt><dd>7</dd></div>
+          <div><dt>Reimbursed YTD</dt><dd>$4,180</dd></div>
+        </dl>
+      </div>
+      <div class="tile">
+        <h3>Purchase Orders</h3>
+        <dl>
+          <div><dt>Open orders</dt><dd>129</dd></div>
+          <div><dt>Terminals covered</dt><dd>6</dd></div>
+        </dl>
+      </div>
+      <div class="tile">
+        <h3>Account Settings</h3>
+        <dl>
+          <div><dt>Recovery email</dt><dd>on file</dd></div>
+          <div><dt>Two-step verification</dt><dd>off</dd></div>
+        </dl>
+      </div>
+    </div>
+    <p class="footnote">This is a practice environment built for a classroom exercise. Cascadia Freight and Marisol Reyes are fictional, and no real account was accessed.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var SALT = "cascadia-freight-sso-v1";
+  var ITER = 300000;
+  var TARGET = "a67123affa6c05b649bc5cdc69b0abae583476ee6e5736e6a12a287861b97564";
+
+  var MAX_TRIES = 8;
+  var COOLDOWN = 5;
+
+  var pass = document.getElementById("pass");
+  var go = document.getElementById("go");
+  var status = document.getElementById("status");
+  var counter = document.getElementById("counter");
+  var info = document.getElementById("info");
+  var policy = document.getElementById("policy");
+  var mark = document.getElementById("mark");
+
+  var tries = 0;
+  var locked = false;
+
+  function hex(buf){
+    var b = new Uint8Array(buf), s = "";
+    for (var i = 0; i < b.length; i++) s += b[i].toString(16).padStart(2, "0");
+    return s;
+  }
+
+  function derive(pw){
+    var enc = new TextEncoder();
+    return crypto.subtle.importKey("raw", enc.encode(pw), "PBKDF2", false, ["deriveBits"])
+      .then(function(key){
+        return crypto.subtle.deriveBits(
+          { name:"PBKDF2", salt: enc.encode(SALT), iterations: ITER, hash:"SHA-256" },
+          key, 256
+        );
+      })
+      .then(hex);
+  }
+
+  function setCounter(){
+    counter.textContent = "Attempts: " + tries;
+  }
+
+  function lockout(){
+    locked = true;
+    var left = COOLDOWN;
+    go.disabled = true;
+    pass.disabled = true;
+    status.className = "status wait";
+    function tick(){
+      status.textContent = "Too many failed attempts. Try again in " + left + "s.";
+      if (left <= 0){
+        locked = false;
+        tries = 0;
+        setCounter();
+        go.disabled = false;
+        pass.disabled = false;
+        status.textContent = "";
+        status.className = "status";
+        pass.focus();
+        return;
+      }
+      left--;
+      setTimeout(tick, 1000);
+    }
+    tick();
+  }
+
+  function attempt(){
+    if (locked) return;
+    var pw = pass.value;
+    if (!pw){ pass.focus(); return; }
+
+    go.disabled = true;
+    status.className = "status wait";
+    status.textContent = "Checking\u2026";
+
+    derive(pw).then(function(h){
+      if (h === TARGET){
+        status.textContent = "";
+        status.className = "status";
+        go.disabled = false;
+        document.getElementById("login").hidden = true;
+        document.getElementById("dash").hidden = false;
+        document.title = "Applications \u2014 Cascadia Freight";
+        window.scrollTo(0, 0);
+        return;
+      }
+      tries++;
+      setCounter();
+      go.disabled = false;
+      pass.select();
+      if (tries >= MAX_TRIES){
+        lockout();
+      } else {
+        status.className = "status bad";
+        status.textContent = "That username and password combination was not recognized.";
+      }
+    }).catch(function(){
+      go.disabled = false;
+      status.className = "status bad";
+      status.textContent = "Sign-in is unavailable in this browser. Open the page over http rather than from a file.";
+    });
+  }
+
+  go.addEventListener("click", attempt);
+  pass.addEventListener("keydown", function(e){ if (e.key === "Enter") attempt(); });
+
+  // password policy tooltip: hover, focus, and click
+  function showPolicy(v){
+    policy.hidden = !v;
+    info.setAttribute("aria-expanded", v ? "true" : "false");
+  }
+  info.addEventListener("click", function(){ showPolicy(policy.hidden); });
+  info.addEventListener("mouseenter", function(){ showPolicy(true); });
+  info.addEventListener("focus", function(){ showPolicy(true); });
+  info.addEventListener("blur", function(){ showPolicy(false); });
+  info.parentNode.addEventListener("mouseleave", function(){
+    if (document.activeElement !== info) showPolicy(false);
+  });
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape") showPolicy(false);
+  });
+
+  // teacher reset: click the wordmark three times quickly
+  var clicks = 0, timer = null;
+  mark.addEventListener("click", function(){
+    clicks++;
+    clearTimeout(timer);
+    timer = setTimeout(function(){ clicks = 0; }, 700);
+    if (clicks >= 3){
+      clicks = 0;
+      locked = false;
+      tries = 0;
+      setCounter();
+      go.disabled = false;
+      pass.disabled = false;
+      pass.value = "";
+      status.textContent = "";
+      status.className = "status";
+      pass.focus();
+    }
+  });
+
+  setCounter();
+})();
+</script>
+</body>
+</html>
