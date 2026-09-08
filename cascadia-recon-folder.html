@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recon folder — Cascadia Freight</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#8D9AA4;padding:24px}
+
+  .teachernote{
+    max-width:7.5in;margin:0 auto 24px;background:#FFF8E1;border:1px solid #D9A21B;
+    border-radius:4px;padding:16px 20px;
+    font:15px/1.5 "Barlow","Segoe UI",sans-serif;color:#3D3320;
+  }
+  .teachernote h2{margin:0 0 6px;font-size:16px}
+  .teachernote p{margin:0 0 8px}
+  .teachernote p:last-child{margin:0}
+
+  .sheet{
+    width:8.5in;min-height:11in;margin:0 auto 24px;background:#fff;
+    padding:0.75in 0.8in;box-shadow:0 4px 16px rgba(0,0,0,.25);
+  }
+
+  /* ---------- 1. company team page ---------- */
+  .co{font:16px/1.55 "Barlow","Segoe UI",sans-serif;color:#1D2A35}
+  .co .chrome{
+    display:flex;justify-content:space-between;align-items:baseline;
+    border-bottom:3px solid #D9A21B;padding-bottom:10px;margin-bottom:6px;
+  }
+  .co .wm{font-family:"Barlow Semi Condensed",sans-serif;font-size:22px;font-weight:600;letter-spacing:.07em;color:#14202A}
+  .co .nav{font-size:14px;color:#5D707F}
+  .co .url{font-size:12.5px;color:#8B99A4;margin-bottom:30px}
+  .co h1{font-size:28px;font-weight:600;margin:0 0 8px}
+  .co .lede{color:#5D707F;max-width:62ch;margin:0 0 30px}
+  .co .person{display:flex;gap:18px;margin-bottom:24px}
+  .co .avatar{
+    flex:0 0 74px;height:74px;border-radius:3px;background:#DDE4E9;
+    display:flex;align-items:center;justify-content:center;
+    font-family:"Barlow Semi Condensed",sans-serif;font-size:24px;font-weight:600;color:#7A8B98;
+  }
+  .co .person h3{margin:0;font-size:17px;font-weight:600}
+  .co .role{margin:0 0 6px;font-size:14.5px;color:#5D707F}
+  .co .person p{margin:0;font-size:15px;max-width:60ch}
+  .co .foot{margin-top:34px;padding-top:12px;border-top:1px solid #D6DDE2;font-size:13px;color:#8B99A4}
+
+  /* ---------- 2. conference program ---------- */
+  .conf{font:16px/1.62 "Spectral",Georgia,serif;color:#2A2622}
+  .conf .band{border-top:6px double #6B4E2E;border-bottom:1px solid #6B4E2E;padding:14px 0;margin-bottom:8px}
+  .conf .band h1{margin:0;font-size:25px;font-weight:600;letter-spacing:.01em}
+  .conf .band p{margin:4px 0 0;font-size:15px;font-style:italic;color:#6B5B4A}
+  .conf .src{font:12.5px "Barlow",sans-serif;color:#998772;margin-bottom:30px}
+  .conf h2{font-size:20px;font-weight:600;margin:0 0 3px}
+  .conf .when{font-size:14.5px;font-style:italic;color:#6B5B4A;margin:0 0 22px}
+  .conf .spk{margin-bottom:22px;padding-left:16px;border-left:2px solid #D8CDBC}
+  .conf .spk h3{margin:0;font-size:17px;font-weight:600}
+  .conf .spk .aff{margin:1px 0 7px;font-size:14.5px;font-style:italic;color:#6B5B4A}
+  .conf .spk p{margin:0;font-size:15.5px;max-width:64ch}
+  .conf .foot{margin-top:32px;padding-top:12px;border-top:1px solid #D8CDBC;font:13px "Barlow",sans-serif;color:#998772}
+
+  /* ---------- 3. race results ---------- */
+  .race{font:14px/1.45 Arial,Helvetica,sans-serif;color:#222}
+  .race .hdr{background:#1B5E86;color:#fff;padding:12px 16px;margin-bottom:2px}
+  .race .hdr h1{margin:0;font-size:20px;font-weight:bold}
+  .race .hdr p{margin:2px 0 0;font-size:13px;color:#BFDCEC}
+  .race .bar{background:#E8EDF1;padding:8px 16px;font-size:13px;color:#41525E;margin-bottom:16px}
+  .race .src{font-size:12px;color:#8B99A4;margin-bottom:14px}
+  .race table{width:100%;border-collapse:collapse;font-size:13.5px}
+  .race th{
+    background:#41525E;color:#fff;text-align:left;padding:7px 9px;font-weight:bold;font-size:12.5px;
+  }
+  .race td{padding:6px 9px;border-bottom:1px solid #DCE3E8}
+  .race tr:nth-child(even) td{background:#F5F8FA}
+  .race .num{text-align:right;font-variant-numeric:tabular-nums}
+  .race .foot{margin-top:20px;font-size:12px;color:#8B99A4}
+
+  @media print{
+    body{background:#fff;padding:0}
+    .teachernote{display:none}
+    .sheet{
+      width:auto;min-height:0;margin:0;box-shadow:none;padding:0.5in;
+      page-break-after:always;break-after:page;
+    }
+    .sheet:last-of-type{page-break-after:auto;break-after:auto}
+  }
+</style>
+</head>
+<body>
+
+<div class="teachernote">
+  <h2>Recon folder — Task 3</h2>
+  <p>Three public documents about Cascadia Freight employees. Print and hand one set to each group. This note does not print.</p>
+  <p>Findable about Marisol Reyes: joined 2019, rescue greyhound named Kestrel, Seahawks fan, WWU class of 2011. The dog's name appears in two independent documents, which is worth pointing out at the consolidation — corroboration is how an analyst gains confidence in a detail.</p>
+</div>
+
+<!-- ================= 1. COMPANY TEAM PAGE ================= -->
+<div class="sheet co">
+  <div class="chrome">
+    <span class="wm">CASCADIA FREIGHT</span>
+    <span class="nav">Services &nbsp; Terminals &nbsp; Our people &nbsp; Careers &nbsp; Contact</span>
+  </div>
+  <p class="url">cascadiafreight.com/our-people</p>
+
+  <h1>Our people</h1>
+  <p class="lede">Cascadia Freight moves regional and long-haul shipments out of six terminals across Washington and Oregon. The people below keep it running.</p>
+
+  <div class="person">
+    <div class="avatar">DW</div>
+    <div>
+      <h3>Dan Whitcomb</h3>
+      <p class="role">Terminal Operations Manager, Kent</p>
+      <p>Dan has run the Kent yard since 2014 and spent twelve years driving before that. Outside work he restores mid-seventies motorcycles, slowly, in a garage his wife would like back.</p>
+    </div>
+  </div>
+
+  <div class="person">
+    <div class="avatar">MR</div>
+    <div>
+      <h3>Marisol Reyes</h3>
+      <p class="role">Senior Accounts Payable Specialist, Kent</p>
+      <p>Marisol joined Cascadia Freight in 2019 and manages vendor payments across all six terminals. She has not missed a Seahawks home opener since college. Her rescue greyhound, Kestrel, comes to the office most Fridays and has her own chair by the window.</p>
+    </div>
+  </div>
+
+  <div class="person">
+    <div class="avatar">PR</div>
+    <div>
+      <h3>Priya Raghunathan</h3>
+      <p class="role">Logistics Coordinator, Kent</p>
+      <p>Priya coordinates regional routing and came to Cascadia in 2021 from a produce distributor in Yakima. She commutes by bicycle year round and is unhelpfully cheerful about the rain.</p>
+    </div>
+  </div>
+
+  <div class="person">
+    <div class="avatar">DK</div>
+    <div>
+      <h3>Devon Kwiatkowski</h3>
+      <p class="role">Fleet Systems Analyst, Kent</p>
+      <p>Devon keeps the telematics and maintenance systems talking to each other. He joined in 2017, plays bass in a band that rehearses in a storage unit, and is the reason the yard cameras finally work.</p>
+    </div>
+  </div>
+
+  <p class="foot">Cascadia Freight &nbsp;|&nbsp; 4180 S 212th St, Kent, WA &nbsp;|&nbsp; (253) 555-0146</p>
+</div>
+
+<!-- ================= 2. CONFERENCE PROGRAM ================= -->
+<div class="sheet conf">
+  <div class="band">
+    <h1>Northwest Supply Chain Forum 2025</h1>
+    <p>Program and speaker biographies — Portland, Oregon, October 14–16</p>
+  </div>
+  <p class="src">nwsupplychainforum.org/2025/program/sessions/invoice-lifecycle</p>
+
+  <h2>Automating the Invoice Lifecycle</h2>
+  <p class="when">Panel discussion, Wednesday October 15, 2:15 p.m., Willamette Room</p>
+
+  <div class="spk">
+    <h3>Angela Foss</h3>
+    <p class="aff">Director of Finance Operations, Harbor Line Distribution</p>
+    <p>Angela has led finance operations at Harbor Line for nine years and previously managed accounts receivable for a national grocery wholesaler. She holds an M.B.A. from Portland State University and chairs the Forum's finance track.</p>
+  </div>
+
+  <div class="spk">
+    <h3>Marisol Reyes</h3>
+    <p class="aff">Senior Accounts Payable Specialist, Cascadia Freight</p>
+    <p>Marisol has spent six years at Cascadia Freight, where she oversees vendor payments across the company's six regional terminals and led its move to electronic invoice approval. She graduated from Western Washington University in 2011 with a degree in business administration, and lives outside Seattle with a retired racing greyhound who is unaware she is retired.</p>
+  </div>
+
+  <div class="spk">
+    <h3>Ted Okonkwo</h3>
+    <p class="aff">Principal Consultant, Meridian Process Group</p>
+    <p>Ted advises mid-sized carriers on procure-to-pay systems and has implemented invoice automation at more than thirty companies in the region. He writes a monthly column for a regional trade publication and is skeptical of most of it.</p>
+  </div>
+
+  <p class="foot">Northwest Supply Chain Forum &nbsp;|&nbsp; Session recordings available to registered attendees</p>
+</div>
+
+<!-- ================= 3. RACE RESULTS ================= -->
+<div class="sheet race">
+  <div class="hdr">
+    <h1>Kirkland Turkey Trot 5K — 2024</h1>
+    <p>Official results, chip timed by Evergreen Race Services</p>
+  </div>
+  <div class="bar">Women 30–39 &nbsp;&nbsp;·&nbsp;&nbsp; 214 finishers &nbsp;&nbsp;·&nbsp;&nbsp; Thursday, November 28, 2024</div>
+  <p class="src">evergreenraceservices.com/results/2024/kirkland-turkey-trot/f3039</p>
+
+  <table>
+    <tr>
+      <th class="num">Place</th><th class="num">Bib</th><th>Name</th><th>Team</th><th>City</th><th class="num">Chip time</th>
+    </tr>
+    <tr><td class="num">1</td><td class="num">1142</td><td>Hannah Broussard</td><td>Sound Runners</td><td>Redmond, WA</td><td class="num">19:48</td></tr>
+    <tr><td class="num">2</td><td class="num">1307</td><td>Kelsey Ihara</td><td>Sound Runners</td><td>Seattle, WA</td><td class="num">20:15</td></tr>
+    <tr><td class="num">3</td><td class="num">1088</td><td>Nadia Petrosyan</td><td>—</td><td>Kirkland, WA</td><td class="num">20:52</td></tr>
+    <tr><td class="num">4</td><td class="num">1425</td><td>Erin Vandeberg</td><td>Lake Hills Striders</td><td>Bellevue, WA</td><td class="num">21:30</td></tr>
+    <tr><td class="num">5</td><td class="num">1219</td><td>Sofia Marchetti</td><td>—</td><td>Woodinville, WA</td><td class="num">22:04</td></tr>
+    <tr><td class="num">6</td><td class="num">1366</td><td>Alicia Ntonga</td><td>Lake Hills Striders</td><td>Bellevue, WA</td><td class="num">22:41</td></tr>
+    <tr><td class="num">7</td><td class="num">1093</td><td>Marisol Reyes</td><td>Team Kestrel</td><td>Kent, WA</td><td class="num">23:17</td></tr>
+    <tr><td class="num">8</td><td class="num">1511</td><td>Bridget Halloran</td><td>—</td><td>Kirkland, WA</td><td class="num">23:38</td></tr>
+    <tr><td class="num">9</td><td class="num">1274</td><td>Yuki Tamura</td><td>Sound Runners</td><td>Seattle, WA</td><td class="num">24:02</td></tr>
+    <tr><td class="num">10</td><td class="num">1189</td><td>Renata Oyelaran</td><td>—</td><td>Bothell, WA</td><td class="num">24:29</td></tr>
+    <tr><td class="num">11</td><td class="num">1402</td><td>Claire Nordstrom</td><td>Team Kestrel</td><td>Kent, WA</td><td class="num">24:51</td></tr>
+    <tr><td class="num">12</td><td class="num">1338</td><td>Priscilla Vance</td><td>—</td><td>Renton, WA</td><td class="num">25:14</td></tr>
+    <tr><td class="num">13</td><td class="num">1157</td><td>Dagmar Lindqvist</td><td>Lake Hills Striders</td><td>Issaquah, WA</td><td class="num">25:40</td></tr>
+    <tr><td class="num">14</td><td class="num">1466</td><td>Tabitha Okoro</td><td>—</td><td>Seattle, WA</td><td class="num">26:03</td></tr>
+    <tr><td class="num">15</td><td class="num">1225</td><td>Joanna Pfeiffer</td><td>Team Kestrel</td><td>Kent, WA</td><td class="num">26:27</td></tr>
+  </table>
+
+  <p class="foot">Results are unofficial until certified. Timing questions: results@evergreenraceservices.com</p>
+</div>
+
+</body>
+</html>
