@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Java Scanner visualizer</title>
+<style>
+  :root {
+    --bg: #f7f6f2;
+    --panel: #ffffff;
+    --border: #d8d5cc;
+    --border-strong: #b8b4a8;
+    --text: #22221f;
+    --text-secondary: #5c5a53;
+    --text-muted: #98958a;
+    --accent: #185fa5;
+    --accent-bg: #e6f1fb;
+    --pro: #534ab7;
+    --pro-bg: #eeedfe;
+    --warning: #854f0b;
+    --warning-bg: #faeeda;
+    --danger: #a32d2d;
+    --danger-bg: #fcebeb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    max-width: 1300px;
+    margin: 40px auto;
+    padding: 0 8px 60px;
+    line-height: 1.5;
+  }
+  .layout { display: grid; grid-template-columns: 1fr 600px; gap: 28px; align-items: start; }
+  .left { min-width: 0; }
+  .right {
+    position: sticky;
+    top: 20px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px 16px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+  }
+  .right h2 { font-size: 14px; font-weight: 600; margin: 14px 0 4px; }
+  @media (max-width: 720px) {
+    .layout { grid-template-columns: 1fr; }
+    .right { position: static; max-height: none; }
+  }
+  h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+  p.sub { color: var(--text-secondary); margin-top: 0; margin-bottom: 24px; font-size: 14px; }
+  .row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+  select, button, textarea {
+    font-family: inherit;
+    font-size: 14px;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    background: var(--panel);
+    color: var(--text);
+    padding: 8px 12px;
+  }
+  button { cursor: pointer; }
+  button:hover { background: #f0efe9; }
+  button:active { transform: scale(0.98); }
+  button.next { border-color: var(--accent); color: var(--accent); }
+  button.line { border-color: var(--pro); color: var(--pro); }
+  textarea { width: 100%; font-family: "SF Mono", Consolas, monospace; font-size: 13px; resize: vertical; }
+  #customRow { display: none; margin-bottom: 12px; }
+  #customError { font-size: 13px; color: var(--danger); display: none; margin-left: 8px; }
+  #fileLabelRow { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; color: var(--text-secondary); font-size: 13px; }
+  #doc {
+    font-family: "SF Mono", Consolas, "Courier New", monospace;
+    font-size: 14px;
+    line-height: 1.9;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    word-break: break-word;
+  }
+  .ch.consumed { color: var(--text-muted); }
+  .ch.sp { text-decoration: underline dotted var(--border-strong); text-underline-offset: 3px; }
+  .ch.nl { color: var(--text-muted); font-size: 12px; }
+  .flash-skip { background: var(--warning-bg); color: var(--warning); border-radius: 2px; }
+  .flash-next { background: var(--accent-bg); color: var(--accent); border-radius: 2px; }
+  .flash-line { background: var(--pro-bg); color: var(--pro); border-radius: 2px; }
+  .cursor {
+    display: inline-block; width: 2px; height: 1.1em; background: var(--accent);
+    vertical-align: text-bottom; animation: blink 1s step-start infinite; margin: 0 -1px;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  #metaRow { display: flex; justify-content: space-between; color: var(--text-muted); font-size: 12px; margin-bottom: 20px; }
+  #log { margin-top: 4px; }
+  .log-row { padding: 8px 0; border-top: 1px solid var(--border); }
+  .log-call-row { display: flex; align-items: baseline; gap: 8px; font-family: "SF Mono", Consolas, monospace; font-size: 13px; }
+  .log-note { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .empty { color: var(--text-muted); font-style: italic; }
+</style>
+</head>
+<body>
+<h1>Java Scanner visualizer</h1>
+<p class="sub">Pick a file, call next() or nextLine(), and watch the cursor move through the text.</p>
+
+<div class="layout">
+  <div class="left">
+    <div class="row">
+      <select id="srcSelect"></select>
+      <button id="uploadBtn" type="button">Upload .txt file</button>
+      <input type="file" id="fileInput" accept=".txt,text/plain" style="display:none;" />
+    </div>
+
+    <div id="customRow">
+      <textarea id="customText" rows="3" placeholder="Type or paste the text you want to scan"></textarea>
+      <div class="row" style="margin-top:6px;">
+        <button id="loadCustomBtn" type="button">Load text</button>
+        <span id="customError">Enter some text first</span>
+      </div>
+    </div>
+
+    <div id="fileLabelRow">
+      <span id="fileLabel">numbers.txt</span>
+    </div>
+    <div id="doc"></div>
+    <div id="metaRow">
+      <span>&#8629; marks a newline, dotted underline marks a space, dimmed text has already been read</span>
+      <span id="posLabel">position 0 / 0</span>
+    </div>
+
+    <div class="row" style="margin-bottom:20px;">
+      <button id="btnNext" class="next" type="button">scanner.next()</button>
+      <button id="btnLine" class="line" type="button">scanner.nextLine()</button>
+      <button id="btnReset" type="button">Reset</button>
+    </div>
+  </div>
+
+  <div class="right">
+    <h2>Calls</h2>
+    <div id="log"></div>
+  </div>
+</div>
+
+<script>
+const PRESETS = {
+  numbers: { name: "numbers.txt", text: "10 20 30\n40 50 60" },
+  sentence: {
+    name: "poem.txt",
+    text: "The maple holds its color long,\nafter frost has walked the yard,\nwhile geese thread south in loose formation\nover rooftops turning hard.\nSomewhere a screen door slams and stills,\nand winter starts to test the hills."
+  },
+  csv: { name: "grades.txt", text: "Ada,92\nGrace,88\nAlan,95" }
+};
+let text = PRESETS.sentence.text;
+let fileName = PRESETS.sentence.name;
+let pos = 0;
+let busy = false;
+let log = [];
+let persist = [];
+
+const srcSelect = document.getElementById("srcSelect");
+const customRow = document.getElementById("customRow");
+const customText = document.getElementById("customText");
+const customError = document.getElementById("customError");
+const docEl = document.getElementById("doc");
+const posLabel = document.getElementById("posLabel");
+const fileLabel = document.getElementById("fileLabel");
+const logEl = document.getElementById("log");
+const btnNext = document.getElementById("btnNext");
+const btnLine = document.getElementById("btnLine");
+const btnReset = document.getElementById("btnReset");
+
+function buildOptions() {
+  srcSelect.innerHTML = "";
+  const keys = ["numbers", "sentence", "csv"];
+  for (const k of keys) {
+    const opt = document.createElement("option");
+    opt.value = k;
+    opt.textContent = PRESETS[k].name;
+    srcSelect.appendChild(opt);
+  }
+  const customOpt = document.createElement("option");
+  customOpt.value = "custom";
+  customOpt.textContent = "Custom text";
+  srcSelect.appendChild(customOpt);
+  srcSelect.value = "sentence";
+}
+buildOptions();
+
+function escapeHtml(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function renderDoc(flash) {
+  let html = "";
+  for (let i = 0; i <= text.length; i++) {
+    if (i === pos && !flash) html += '<span class="cursor"></span>';
+    if (i === text.length) break;
+    const ch = text[i];
+    let cls = "ch";
+    const p = persist.find(r => i >= r.start && i < r.end);
+    if (p) {
+      cls += " " + p.cls;
+    } else if (i < pos) {
+      cls += " consumed";
+    }
+    if (flash && i >= flash.start && i < flash.end) {
+      cls += flash.type === "skip" ? " flash-skip" : flash.type === "line" ? " flash-line" : " flash-next";
+    }
+    if (ch === "\n") {
+      html += `<span class="${cls} nl">&#8629;</span><br/>`;
+    } else if (ch === " ") {
+      html += `<span class="${cls} sp"> </span>`;
+    } else {
+      html += `<span class="${cls}">${escapeHtml(ch)}</span>`;
+    }
+  }
+  docEl.innerHTML = html;
+  posLabel.textContent = `position ${pos} / ${text.length}`;
+  fileLabel.textContent = fileName;
+}
+
+function renderLog() {
+  if (log.length === 0) {
+    logEl.innerHTML = '<div class="log-row"><span class="empty">No calls yet. Try scanner.next() or scanner.nextLine().</span></div>';
+    return;
+  }
+  logEl.innerHTML = log.map(row => {
+    const callLabel = row.call === "next" ? "scanner.next()" : "scanner.nextLine()";
+    const callColor = row.error ? "var(--danger)" : (row.call === "next" ? "var(--accent)" : "var(--pro)");
+    let valueHtml;
+    if (row.error) {
+      valueHtml = `<span style="color: var(--danger);">NoSuchElementException</span>`;
+    } else if (row.value === "") {
+      valueHtml = `<span class="empty">empty string</span>`;
+    } else {
+      valueHtml = `"${escapeHtml(row.value)}"`;
+    }
+    return `
+      <div class="log-row">
+        <div class="log-call-row">
+          <span style="color:${callColor};">${callLabel}</span>
+          <span style="color: var(--text-muted);">&#8594;</span>
+          <span>${valueHtml}</span>
+        </div>
+        <div class="log-note">${row.note}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+function isWs(c) { return /\s/.test(c); }
+
+function doNext() {
+  if (busy) return;
+  busy = true;
+  let i = pos;
+  const n = text.length;
+  while (i < n && isWs(text[i])) i++;
+  if (i >= n) {
+    log.push({ call: "next", error: true, note: "No non-whitespace text left to read." });
+    renderLog();
+    busy = false;
+    return;
+  }
+  const skipStart = pos, skipEnd = i;
+  const tokenStart = i;
+  while (i < n && !isWs(text[i])) i++;
+  const tokenEnd = i;
+  const token = text.slice(tokenStart, tokenEnd);
+  const skippedCount = skipEnd - skipStart;
+
+  persist = [];
+  renderDoc(null);
+
+  const commit = () => {
+    pos = tokenEnd;
+    persist = skippedCount > 0
+      ? [{ start: skipStart, end: skipEnd, cls: "flash-skip" }, { start: tokenStart, end: tokenEnd, cls: "flash-next" }]
+      : [{ start: tokenStart, end: tokenEnd, cls: "flash-next" }];
+    renderDoc(null);
+    const note = skippedCount > 0
+      ? `Skipped ${skippedCount} whitespace character${skippedCount === 1 ? "" : "s"}, then read up to the next whitespace.`
+      : "Read up to the next whitespace.";
+    log.push({ call: "next", value: token, note });
+    renderLog();
+    busy = false;
+  };
+
+  setTimeout(() => {
+    if (skippedCount > 0) {
+      renderDoc({ start: skipStart, end: skipEnd, type: "skip" });
+      setTimeout(() => {
+        renderDoc({ start: tokenStart, end: tokenEnd, type: "next" });
+        setTimeout(commit, 450);
+      }, 400);
+    } else {
+      renderDoc({ start: tokenStart, end: tokenEnd, type: "next" });
+      setTimeout(commit, 450);
+    }
+  }, 200);
+}
+
+function doLine() {
+  if (busy) return;
+  busy = true;
+  const n = text.length;
+  if (pos >= n) {
+    log.push({ call: "nextLine", error: true, note: "No more lines left to read." });
+    renderLog();
+    busy = false;
+    return;
+  }
+  const idx = text.indexOf("\n", pos);
+  const lineEnd = idx === -1 ? n : idx;
+  const newPos = idx === -1 ? n : idx + 1;
+  const line = text.slice(pos, lineEnd);
+  const lineStart = pos;
+
+  persist = [];
+  renderDoc(null);
+
+  setTimeout(() => {
+    renderDoc({ start: lineStart, end: newPos, type: "line" });
+    setTimeout(() => {
+      persist = [{ start: lineStart, end: newPos, cls: "flash-line" }];
+      pos = newPos;
+      renderDoc(null);
+      const note = idx === -1
+        ? "Read to the end of the text (no newline found)."
+        : "Read to the end of the line and consumed the newline.";
+      log.push({ call: "nextLine", value: line, note });
+      renderLog();
+      busy = false;
+    }, 450);
+  }, 200);
+}
+
+function loadSource(newText, newName) {
+  text = newText;
+  fileName = newName;
+  pos = 0;
+  log = [];
+  persist = [];
+  renderDoc(null);
+  renderLog();
+}
+
+srcSelect.addEventListener("change", () => {
+  const v = srcSelect.value;
+  if (v === "custom") {
+    customRow.style.display = "block";
+  } else {
+    customRow.style.display = "none";
+    loadSource(PRESETS[v].text, PRESETS[v].name);
+  }
+});
+
+document.getElementById("loadCustomBtn").addEventListener("click", () => {
+  const val = customText.value;
+  if (!val.trim()) {
+    customError.style.display = "inline";
+    return;
+  }
+  customError.style.display = "none";
+  loadSource(val, "custom text");
+});
+
+document.getElementById("uploadBtn").addEventListener("click", () => {
+  document.getElementById("fileInput").click();
+});
+document.getElementById("fileInput").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    srcSelect.value = "custom";
+    customRow.style.display = "block";
+    customText.value = reader.result;
+    loadSource(reader.result, file.name);
+  };
+  reader.readAsText(file);
+});
+
+btnNext.addEventListener("click", doNext);
+btnLine.addEventListener("click", doLine);
+btnReset.addEventListener("click", () => loadSource(text, fileName));
+
+renderDoc(null);
+renderLog();
+</script>
+</body>
+</html>
