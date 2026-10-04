@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Harbor Point Breach</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #EAF0F4;
+  --card: #FFFFFF;
+  --ink: #1B2A3A;
+  --muted: #566778;
+  --line: #C3CFD9;
+  --accent: #2D5BA3;
+  --accent-soft: #DCE6F4;
+  --good: #23704A;
+  --good-soft: #E1F1E8;
+  --bad: #A93E2B;
+  --bad-soft: #F8E5E1;
+  --shadow: 0 1px 2px rgba(27, 42, 58, 0.08), 0 6px 18px rgba(27, 42, 58, 0.06);
+  --ui: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --story: "Source Serif 4", Georgia, "Times New Roman", serif;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #121B25;
+    --card: #1A2633;
+    --ink: #E3EAF1;
+    --muted: #9AAABB;
+    --line: #34465A;
+    --accent: #7FA6E6;
+    --accent-soft: #22344D;
+    --good: #6FCB97;
+    --good-soft: #17352A;
+    --bad: #F08E7A;
+    --bad-soft: #3D2320;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.25);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #121B25;
+  --card: #1A2633;
+  --ink: #E3EAF1;
+  --muted: #9AAABB;
+  --line: #34465A;
+  --accent: #7FA6E6;
+  --accent-soft: #22344D;
+  --good: #6FCB97;
+  --good-soft: #17352A;
+  --bad: #F08E7A;
+  --bad-soft: #3D2320;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+*, *::before, *::after { box-sizing: inherit; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--ui);
+  font-size: 1.0625rem;
+  line-height: 1.5;
+}
+main {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 4rem;
+}
+h1 {
+  font-family: var(--story);
+  font-weight: 600;
+  font-size: clamp(2rem, 5vw, 2.75rem);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.5rem;
+}
+.lede {
+  color: var(--muted);
+  margin: 0 0 2rem;
+  max-width: 38rem;
+}
+h2 {
+  font-size: 1.125rem;
+  margin: 0 0 0.5rem;
+}
+.instructions {
+  border-left: 3px solid var(--accent);
+  padding: 0.25rem 0 0.25rem 1.1rem;
+  margin-bottom: 1.75rem;
+}
+.instructions ol {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+.instructions li + li { margin-top: 0.3rem; }
+
+.bank {
+  margin-bottom: 2.25rem;
+}
+.bank p {
+  margin: 0 0 0.6rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.chips li {
+  border: 1.5px solid var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 999px;
+  padding: 0.25rem 0.8rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  transition: opacity 0.2s;
+}
+.chips li.used {
+  opacity: 0.45;
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+}
+
+/* Timeline */
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: slot;
+  position: relative;
+}
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 1.05rem;
+  top: 1.5rem;
+  bottom: 1.5rem;
+  width: 2px;
+  background: var(--line);
+}
+.step {
+  counter-increment: slot;
+  position: relative;
+  padding-left: 3.25rem;
+  margin-bottom: 1rem;
+}
+.step::before {
+  content: counter(slot);
+  position: absolute;
+  left: 0;
+  top: 1rem;
+  width: 2.15rem;
+  height: 2.15rem;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 2px solid var(--line);
+  color: var(--muted);
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  z-index: 1;
+}
+.step.is-good::before { border-color: var(--good); color: var(--good); background: var(--good-soft); }
+.step.is-bad::before { border-color: var(--bad); color: var(--bad); background: var(--bad-soft); }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 1rem 1rem 1rem 0.5rem;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.75rem;
+}
+.step.is-good .card { border-color: var(--good); }
+.step.is-bad .card { border-color: var(--bad); }
+
+.grip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+.handle {
+  cursor: grab;
+  touch-action: none;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  padding: 0.35rem;
+  border-radius: 6px;
+  line-height: 0;
+}
+.handle:active { cursor: grabbing; }
+.no-drag .handle { display: none; }
+.move {
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  width: 2rem;
+  height: 1.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  line-height: 0;
+  display: grid;
+  place-items: center;
+}
+.move:disabled { opacity: 0.35; cursor: default; }
+.move:not(:disabled):hover { border-color: var(--accent); color: var(--accent); }
+
+.body p {
+  font-family: var(--story);
+  font-size: 1.08rem;
+  line-height: 1.62;
+  margin: 0 0 0.85rem;
+}
+.label-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.label-row label {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+select {
+  font: inherit;
+  font-size: 0.98rem;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+  min-width: 12rem;
+  max-width: 100%;
+}
+select:focus-visible, button:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.feedback {
+  margin-top: 0.75rem;
+  font-size: 0.95rem;
+  display: grid;
+  gap: 0.35rem;
+}
+.feedback:empty { display: none; }
+.fb {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+}
+.fb.good { background: var(--good-soft); color: var(--good); }
+.fb.bad { background: var(--bad-soft); color: var(--bad); }
+.fb strong { flex: none; }
+.fb .hint { color: var(--ink); }
+
+.sortable-ghost .card { opacity: 0.35; }
+.sortable-chosen .card { box-shadow: 0 10px 30px rgba(27, 42, 58, 0.22); }
+
+/* Actions */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin: 1.75rem 0 0 3.25rem;
+}
+.btn {
+  font: inherit;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 0.65rem 1.2rem;
+  cursor: pointer;
+  border: 2px solid var(--accent);
+}
+.btn.primary { background: var(--accent); color: var(--card); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.secondary { background: transparent; color: var(--accent); }
+.btn.secondary:hover { background: var(--accent-soft); }
+
+.summary {
+  margin: 1rem 0 0 3.25rem;
+  font-weight: 700;
+  min-height: 1.5em;
+}
+.summary.good { color: var(--good); }
+.summary.bad { color: var(--bad); }
+
+.aftermath {
+  margin: 2rem 0 0 3.25rem;
+  background: var(--card);
+  border: 2px solid var(--good);
+  border-radius: 10px;
+  padding: 1.25rem 1.25rem 1.1rem;
+}
+.aftermath[hidden] { display: none; }
+.aftermath p {
+  font-family: var(--story);
+  line-height: 1.62;
+  margin: 0 0 0.85rem;
+}
+.aftermath .discuss {
+  font-family: var(--ui);
+  border-top: 1px solid var(--line);
+  padding-top: 0.85rem;
+  margin-bottom: 0;
+}
+.aftermath.reveal { animation: rise 0.5s ease-out; }
+@keyframes rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aftermath.reveal { animation: none; }
+  .chips li { transition: none; }
+}
+
+@media (max-width: 34rem) {
+  main { padding-top: 1.75rem; }
+  .step { padding-left: 2.6rem; }
+  .step::before { width: 1.9rem; height: 1.9rem; font-size: 0.9rem; }
+  .timeline::before { left: 0.92rem; }
+  .actions, .summary, .aftermath { margin-left: 0; }
+  select { min-width: 0; width: 100%; }
+}
+</style>
+</head>
+<body>
+<main>
+  <h1>The Harbor Point Breach</h1>
+  <p class="lede">An attacker crew broke into a medical supply company and left with its entire customer database. The story of how they did it has been scrambled. Put it back together.</p>
+
+  <section class="instructions" aria-labelledby="how">
+    <h2 id="how">How to complete this activity</h2>
+    <ol>
+      <li>Read all six paragraphs.</li>
+      <li>Drag each paragraph by its handle, or use the arrow buttons, until the story is in the order it happened.</li>
+      <li>Choose the attack phase that each paragraph shows. Each phase is used exactly once.</li>
+      <li>Select <strong>Check my answers</strong>. Fix anything marked and check again until everything is correct.</li>
+    </ol>
+  </section>
+
+  <section class="bank" aria-labelledby="bank-title">
+    <h2 id="bank-title">Attack phases</h2>
+    <p>Phases you have already assigned are crossed out.</p>
+    <ul class="chips" id="chips"></ul>
+  </section>
+
+  <ol class="timeline" id="timeline" aria-label="Story paragraphs in your current order"></ol>
+
+  <div class="actions">
+    <button class="btn primary" id="check" type="button">Check my answers</button>
+    <button class="btn secondary" id="reshuffle" type="button">Shuffle and start over</button>
+  </div>
+  <p class="summary" id="summary" role="status" aria-live="polite"></p>
+
+  <section class="aftermath" id="aftermath" hidden aria-labelledby="after-title">
+    <h2 id="after-title">Aftermath</h2>
+    <p>Four months later, a hospital's security team spotted Harbor Point's customer records for sale on an illegal online market, listed alongside data the same crew had stolen from a dozen other companies that year. When Harbor Point's investigators went looking, they found almost nothing to trace: no hidden program, no extra account, and gaps in the logs exactly where the evidence should have been.</p>
+    <p class="discuss"><strong>Think about it:</strong> The crew already had the data before the last phase. Why would they bother with that final step? Be ready to share your answer.</p>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+<script>
+(function () {
+  var PHASES = [
+    "Reconnaissance",
+    "Initial access",
+    "Persistence",
+    "Lateral movement",
+    "Taking action",
+    "Evading detection"
+  ];
+
+  var SALT = "4913236b7db880672fecbc53";
+  var ORDER_KEYS = ["960a670c4fb0469e10d120d6559f2bbbdd9c8ced71689c504129094bed1fba2f", "7b3e3ba11ea577c5401b0156e5292acab3f5807a55b51f43953a9117ceb9a7f3", "2e828bc807f94c1996b35a89cd7ec6044c71cf955aec4a061523d19a23576630", "5a74bf887519caf16407bfb293bc9bb4547b1ffde54a14e1a4466d255038b42a", "15add20d9c58c05d9301ad8cd8205d58473a477a19a79f32a32c9c05b7624c79", "150a480361b4fc171fcbd1502732cc43b1ba983bc079266932d187f24b0526e2", "ac8c1b417b26267f6022ccaf43e740219cae08c9279ae16578de7df8f959446d", "ffc7fa13d33103c1c910b0262c87233a3b1268c7827ae33888531ef93934a46b", "4a6504b49c454fc27f91eaf1f16b1fcf3b265bf25da382db10c9033a8d236362", "a1bc5748214122b3105279ed3276157292814d8bbf25da166e96080ab1462446", "058a667e143b0ea09dbfbdfee92b90a8da11a66251c2ee61d6abb95ad036d25e", "8388f6552e68b590982b525606f346902a25925460d5a0f6a43cb5ed8ceef197", "9a3779afd39978c38e9300c1752fe58eef45d74225094749080d01bb4c154a87", "ce88d5ecc304e77f1775e4d2d1276c40a6382e48b74f5477b995069cc548dec7", "3f9ddb3cba1006811e510d63bc2061990f920d203a954d28abae408a50628d94", "e394940fa0d39adf27d1bc0f2b738dc9801331484f39e5ecfa8ab6b2591dec91", "ba65a758eb0cde4c7e376d84f75903d536c1a44ff8fc3416aafd58cfea849545", "76a7f543e7944cedaf23564d03e9b03b2d8a9b71b8a97fcaffbddd8de4781e40", "95376b1c48d56591b2386fa4cbb46870f7f428355eb85f72fad79d8de86e06c7", "2921e5b6a8ad4fb6432e468d1746aa64d63c47c4a3bf19f42dbd76f975324932", "0f9a2206bc4ddaf165f59a6cf8e9e36af5e42a953ebe5505042a948377c64aeb", "dc22b475a7e3014afaa850ebb142efb845d3178016fc304d84988b3467be2e16", "aadf6be2b2516aae40026cd55ec8c595cc4df1a01323711f8680ff1723046ae0", "e1de2ea47433eabeb23c74db1ac9a82279127f764c832d5f695eaf842f0046fc", "d1dce632206593edc1de749fa47b5ab2a70f6378320d7c06bb4c3bb066ef1652", "9705c44b2e234d963c4d0585b3b5d0ee19bba13c12070f327eda86e284f3c82e", "e4fb66300c06aab9f9766e97adcb11c9e5c87d828f8621333fbee377ec7c03b7", "5afae9a0325b1de79154be128863ab28487240f20c4262713011cf993259f6dd", "55898c82dc1f766bb0970c66aaae523cfec937607f605b4f64f800d27825f9f6", "8bca6f795877abb64268841c6195ceb6dff4da58e3f34d6efb78990f4f543a46", "0cf8df2e54aea5d94e7a009e81002e5303838ee905e4333c073686f887528ed5", "589a06bf899b73a4645dd16e5502f2f5c3f4b39c5d41666ce90eefe86b3b7dc1", "3af427f36ddd40529df19182fb9560f75a035c0a658b4f523052725ff58b7217", "0375f0e39df6eac874b1a739a8a634344aac70e835e7e05ca3356ca3923ad582", "7239ab348abb5f1ac8f90fe28d4b3852954fe0020c83de672e5792f27d33c5d7", "8381aa45706de9fac13dd6234a8a517c11c803ba2ba2ccbf38ae8a70d2c91735"];
+  var PHASE_KEYS = ["d6d5a3608ad342d7a37c51b40dfe1ab2dd47de1fb53060ae71fdf3c7f470536d", "4a99bbe87e290981ef63debce1eaab032b88ef2354ba7aeae5167fc6237cd58a", "ecdc13dc60f642ffeb22b94efb86644ef337bf3c469a0d4482e56bf099437196", "b4be28c2636e31aba3ef8056a782129d9035e9d89befe51d6af8f84884b9573a", "9fabc7674bbe1f7a40c8cc3d0026ab9e7272867c44005145ec0cf0fe434fb4a9", "433067f7d4b7227873d4f3ce19c98d4511307548999c4e82ec860f887b80f759"];
+
+  var PARAGRAPHS = [
+    {
+      id: "07e627",
+      text: "For three weeks, a crew with members in several countries studied Harbor Point Medical Supply, a company that ships surgical equipment to hospitals across the Pacific Northwest. They never touched any of its computers. A job posting revealed which remote-access software the company uses. LinkedIn showed that a woman named Priya Desai handles vendor invoices in accounts payable. The company website listed staff email addresses in the same pattern, first name dot last name. A press release named Cascade Freight as Harbor Point's new shipping partner. By the end, the crew knew whom to target, how to reach her, and what story she would believe.",
+      hint: "Have the attackers interacted with any of the company's systems yet?"
+    },
+    {
+      id: "b3220c",
+      text: "Over three nights, the crew copied the entire customer database, compressed it into a single file, and sent it out of Harbor Point's network to a server they controlled overseas.",
+      hint: "Is this preparation, or is this what the whole attack was for?"
+    },
+    {
+      id: "b63d87",
+      text: "On a Monday morning, Priya received an email that appeared to come from Cascade Freight's billing department: \u201cHello Ms. Desai, we found an error on the invoice for last Thursday's shipment to St. Brendan Hospital and have attached a corrected copy. Please review it at your convenience.\u201d Priya had processed that shipment, so she opened the attachment. Nothing seemed to happen, but a hidden program installed itself on her laptop. For the first time, the attackers could control a computer inside Harbor Point.",
+      hint: "Before this paragraph, could the attackers control anything inside the company? What about after it?"
+    },
+    {
+      id: "b8be6e",
+      text: "Before leaving, the crew erased the entries in the server logs that showed the administrator's account signing in at 2:00 a.m. They deleted the hidden program and the fake system account from Priya's laptop. To anyone checking Harbor Point's systems the next morning, it looked like an ordinary, uneventful night.",
+      hint: "Whom are the attackers worried about in this paragraph?"
+    },
+    {
+      id: "6caebb",
+      text: "Priya's account could only see accounts payable files, and the crew wanted far more. Searching her laptop, they found a saved password left behind months earlier, when an IT administrator had signed in to fix her printer. Using the administrator's account, they connected to one server after another until they reached the one holding Harbor Point's customer database: every hospital it supplies, each hospital's purchasing contacts, and years of order and payment records.",
+      hint: "Are the attackers getting in from the outside here, or reaching things they could not reach before?"
+    },
+    {
+      id: "ab9dfc",
+      text: "The crew knew Priya might restart her laptop, or that IT might eventually change her password. So they set the hidden program to quietly reconnect to their server every time the laptop started up. They also created a second account on her laptop, named to look like a routine system service, so they could get back in through another door if the first one closed.",
+      hint: "What problem are the attackers protecting themselves against in this paragraph?"
+    }
+  ];
+
+  var orderSet = new Set(ORDER_KEYS);
+  var phaseSet = new Set(PHASE_KEYS);
+
+  function sha256(text) {
+    return crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)).then(function (buf) {
+      return Array.prototype.map.call(new Uint8Array(buf), function (b) {
+        return b.toString(16).padStart(2, "0");
+      }).join("");
+    });
+  }
+
+  function orderOutcome(id, pos) {
+    var outcomes = ["right", "earlier", "later"];
+    return Promise.all(outcomes.map(function (o) {
+      return sha256(SALT + "|" + id + "|pos|" + pos + "|" + o);
+    })).then(function (hashes) {
+      for (var i = 0; i < hashes.length; i++) {
+        if (orderSet.has(hashes[i])) return outcomes[i];
+      }
+      return "unknown";
+    });
+  }
+
+  function phaseIsRight(id, phase) {
+    return sha256(SALT + "|" + id + "|phase|" + phase).then(function (hash) {
+      return phaseSet.has(hash);
+    });
+  }
+
+  var byId = {};
+  PARAGRAPHS.forEach(function (p) { byId[p.id] = p; });
+
+  var timeline = document.getElementById("timeline");
+  var chips = document.getElementById("chips");
+  var summary = document.getElementById("summary");
+  var aftermath = document.getElementById("aftermath");
+
+  var gripIcon = '<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" fill="currentColor"><circle cx="6" cy="4" r="1.6"/><circle cx="12" cy="4" r="1.6"/><circle cx="6" cy="9" r="1.6"/><circle cx="12" cy="9" r="1.6"/><circle cx="6" cy="14" r="1.6"/><circle cx="12" cy="14" r="1.6"/></svg>';
+  var upIcon = '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 9l4-4 4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var downIcon = '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 5l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  function shuffled() {
+    var list = PARAGRAPHS.slice();
+    for (var i = list.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = list[i]; list[i] = list[j]; list[j] = t;
+    }
+    return list;
+  }
+
+  function noneInPlace(list) {
+    return Promise.all(list.map(function (p, pos) { return orderOutcome(p.id, pos); }))
+      .then(function (results) { return results.indexOf("right") === -1; });
+  }
+
+  function pickStartingOrder(attempt) {
+    var list = shuffled();
+    if (attempt >= 60) return Promise.resolve(list);
+    return noneInPlace(list).then(function (ok) {
+      return ok ? list : pickStartingOrder(attempt + 1);
+    });
+  }
+
+  function buildChips() {
+    chips.innerHTML = "";
+    PHASES.forEach(function (p) {
+      var li = document.createElement("li");
+      li.textContent = p;
+      li.dataset.phase = p;
+      chips.appendChild(li);
+    });
+  }
+
+  function buildCard(p) {
+    var li = document.createElement("li");
+    li.className = "step";
+    li.dataset.id = p.id;
+
+    var selectId = "phase-" + p.id;
+    var options = '<option value="">Choose a phase</option>' + PHASES.map(function (ph) {
+      return '<option value="' + ph + '">' + ph + "</option>";
+    }).join("");
+
+    li.innerHTML =
+      '<div class="card">' +
+        '<div class="grip">' +
+          '<button type="button" class="move up" aria-label="Move paragraph up">' + upIcon + "</button>" +
+          '<span class="handle" title="Drag to reorder" aria-hidden="true">' + gripIcon + "</span>" +
+          '<button type="button" class="move down" aria-label="Move paragraph down">' + downIcon + "</button>" +
+        "</div>" +
+        '<div class="body">' +
+          "<p></p>" +
+          '<div class="label-row">' +
+            '<label for="' + selectId + '">Phase:</label>' +
+            '<select id="' + selectId + '">' + options + "</select>" +
+          "</div>" +
+          '<div class="feedback" aria-live="polite"></div>' +
+        "</div>" +
+      "</div>";
+
+    li.querySelector(".body p").textContent = p.text;
+
+    li.querySelector(".up").addEventListener("click", function () { move(li, -1); });
+    li.querySelector(".down").addEventListener("click", function () { move(li, 1); });
+    li.querySelector("select").addEventListener("change", function () {
+      clearFeedback();
+      updateChips();
+    });
+    return li;
+  }
+
+  function move(li, dir) {
+    if (dir < 0 && li.previousElementSibling) {
+      timeline.insertBefore(li, li.previousElementSibling);
+    } else if (dir > 0 && li.nextElementSibling) {
+      timeline.insertBefore(li.nextElementSibling, li);
+    } else {
+      return;
+    }
+    afterReorder();
+    var btn = li.querySelector(dir < 0 ? ".up" : ".down");
+    if (btn.disabled) btn = li.querySelector(dir < 0 ? ".down" : ".up");
+    btn.focus();
+  }
+
+  function updateMoveButtons() {
+    var items = timeline.children;
+    for (var i = 0; i < items.length; i++) {
+      items[i].querySelector(".up").disabled = i === 0;
+      items[i].querySelector(".down").disabled = i === items.length - 1;
+    }
+  }
+
+  function afterReorder() {
+    updateMoveButtons();
+    clearFeedback();
+  }
+
+  function updateChips() {
+    var used = {};
+    timeline.querySelectorAll("select").forEach(function (s) {
+      if (s.value) used[s.value] = true;
+    });
+    chips.querySelectorAll("li").forEach(function (c) {
+      c.classList.toggle("used", !!used[c.dataset.phase]);
+    });
+  }
+
+  function clearFeedback() {
+    timeline.querySelectorAll(".step").forEach(function (li) {
+      li.classList.remove("is-good", "is-bad");
+      li.querySelector(".feedback").innerHTML = "";
+    });
+    summary.textContent = "";
+    summary.className = "summary";
+  }
+
+  function fbLine(kind, title, text) {
+    var div = document.createElement("div");
+    div.className = "fb " + kind;
+    var strong = document.createElement("strong");
+    strong.textContent = (kind === "good" ? "\u2713 " : "\u2717 ") + title;
+    div.appendChild(strong);
+    if (text) {
+      var span = document.createElement("span");
+      span.className = kind === "bad" ? "hint" : "";
+      span.textContent = text;
+      div.appendChild(span);
+    }
+    return div;
+  }
+
+  var checking = false;
+
+  function check() {
+    if (checking) return;
+    var items = Array.prototype.slice.call(timeline.children);
+    var unlabeled = items.filter(function (li) { return !li.querySelector("select").value; }).length;
+    clearFeedback();
+
+    if (unlabeled > 0) {
+      summary.textContent = "Choose a phase for every paragraph before checking. " +
+        unlabeled + (unlabeled === 1 ? " paragraph still needs" : " paragraphs still need") + " a phase.";
+      summary.className = "summary bad";
+      return;
+    }
+
+    checking = true;
+    Promise.all(items.map(function (li, position) {
+      var id = li.dataset.id;
+      return Promise.all([orderOutcome(id, position), phaseIsRight(id, li.querySelector("select").value)]);
+    })).then(function (results) {
+      var orderRight = 0, labelRight = 0;
+      results.forEach(function (r, i) {
+        var li = items[i];
+        var outcome = r[0];
+        var labelOk = r[1];
+        var fb = li.querySelector(".feedback");
+        var orderOk = outcome === "right";
+
+        if (orderOk) {
+          orderRight++;
+          fb.appendChild(fbLine("good", "Order:", "In the right spot."));
+        } else {
+          fb.appendChild(fbLine("bad", "Order:", outcome === "earlier" ? "This happens earlier in the story." : "This happens later in the story."));
+        }
+
+        if (labelOk) {
+          labelRight++;
+          fb.appendChild(fbLine("good", "Phase:", "Correct."));
+        } else {
+          fb.appendChild(fbLine("bad", "Phase:", "Not this one. " + byId[li.dataset.id].hint));
+        }
+
+        li.classList.add(orderOk && labelOk ? "is-good" : "is-bad");
+      });
+
+      var total = items.length;
+      if (orderRight === total && labelRight === total) {
+        summary.textContent = "Every paragraph is in order and correctly labeled. Read the aftermath below.";
+        summary.className = "summary good";
+        if (aftermath.hidden) {
+          aftermath.hidden = false;
+          aftermath.classList.add("reveal");
+          aftermath.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest" });
+        }
+      } else {
+        summary.textContent = orderRight + " of " + total + " in the right order. " +
+          labelRight + " of " + total + " labeled correctly. Fix the marked paragraphs and check again.";
+        summary.className = "summary bad";
+      }
+    }).catch(function () {
+      summary.textContent = "Answers could not be checked in this browser. Open the page from its https web address and try again.";
+      summary.className = "summary bad";
+    }).then(function () { checking = false; });
+  }
+
+  function start() {
+    var ready = (window.crypto && crypto.subtle) ? pickStartingOrder(0) : Promise.resolve(shuffled());
+    return ready.then(function (list) {
+      timeline.innerHTML = "";
+      list.forEach(function (p) { timeline.appendChild(buildCard(p)); });
+      aftermath.hidden = true;
+      aftermath.classList.remove("reveal");
+      updateMoveButtons();
+      updateChips();
+      clearFeedback();
+    });
+  }
+
+  document.getElementById("check").addEventListener("click", check);
+  document.getElementById("reshuffle").addEventListener("click", function () {
+    start();
+    window.scrollTo({ top: 0, behavior: "auto" });
+  });
+
+  buildChips();
+  start();
+
+  if (window.Sortable) {
+    Sortable.create(timeline, {
+      handle: ".handle",
+      animation: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 160,
+      onEnd: afterReorder
+    });
+  } else {
+    document.documentElement.classList.add("no-drag");
+  }
+})();
+</script>
+</body>
+</html>
