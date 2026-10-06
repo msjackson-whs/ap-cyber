@@ -1,0 +1,436 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Java Stack Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  /* Layout: controls on top, stack column on the left, call log on the right; stacks to one column on phones */
+  :root {
+    --bg: #f6f6f3;
+    --panel: #ffffff;
+    --border: #d9d8d1;
+    --border-strong: #b5b3a8;
+    --text: #22221f;
+    --text-2: #5b5a53;
+    --muted: #96948a;
+    --accent: #185fa5;
+    --accent-bg: #e3effa;
+    --push: #1d7a4f;
+    --push-bg: #e2f4ea;
+    --pop: #9a5a08;
+    --pop-bg: #fbeedb;
+    --peek: #534ab7;
+    --peek-bg: #edecfd;
+    --danger: #a32d2d;
+    --danger-bg: #fcebeb;
+    --on-fill: #ffffff;
+    --btn-edge: rgba(0, 0, 0, 0.22);
+    --btn-shadow: rgba(0, 0, 0, 0.10);
+    --font-sans: "IBM Plex Sans", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    --font-mono: "IBM Plex Mono", "SF Mono", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17181a; --panel: #212226; --border: #34363b; --border-strong: #4a4c53;
+      --text: #ecebe6; --text-2: #b4b2aa; --muted: #7d7b74;
+      --accent: #7db6ec; --accent-bg: #1c3045;
+      --push: #6fd2a0; --push-bg: #183528; --pop: #f0b45e; --pop-bg: #3a2a12;
+      --peek: #aea7f5; --peek-bg: #2a2748; --danger: #f08b8b; --danger-bg: #3d1c1c;
+      --on-fill: #15161a; --btn-edge: rgba(0, 0, 0, 0.55); --btn-shadow: rgba(0, 0, 0, 0.35);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17181a; --panel: #212226; --border: #34363b; --border-strong: #4a4c53;
+    --text: #ecebe6; --text-2: #b4b2aa; --muted: #7d7b74;
+    --accent: #7db6ec; --accent-bg: #1c3045;
+    --push: #6fd2a0; --push-bg: #183528; --pop: #f0b45e; --pop-bg: #3a2a12;
+    --peek: #aea7f5; --peek-bg: #2a2748; --danger: #f08b8b; --danger-bg: #3d1c1c;
+    --on-fill: #15161a; --btn-edge: rgba(0, 0, 0, 0.55); --btn-shadow: rgba(0, 0, 0, 0.35);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    padding-inline: 20px;
+    padding-block: 32px 60px;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; display: grid; gap: 20px; }
+  h1 { font-size: 22px; font-weight: 600; margin: 0; text-wrap: balance; }
+  p.sub { color: var(--text-2); margin: 4px 0 0; font-size: 14px; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .divider { width: 1px; align-self: stretch; background: var(--border); margin: 0 4px; }
+  select, input, button {
+    font-family: inherit; font-size: 14px;
+    border: 1px solid var(--border-strong); border-radius: 6px;
+    background: var(--panel); color: var(--text);
+    padding: 8px 12px;
+  }
+  input#valueInput { width: 110px; font-family: var(--font-mono); }
+  button {
+    cursor: pointer; font-family: var(--font-mono); font-size: 13.5px; font-weight: 600;
+    border: none; border-radius: 999px;
+    padding: 9px 18px;
+    color: var(--on-fill);
+    box-shadow: 0 3px 0 var(--btn-edge), 0 4px 10px var(--btn-shadow);
+    transition: transform 0.08s, box-shadow 0.08s, filter 0.15s;
+  }
+  button:hover:not(:disabled) { filter: brightness(1.08); }
+  button:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 0 0 var(--btn-edge), 0 1px 3px var(--btn-shadow); }
+  button:disabled { opacity: 0.45; cursor: default; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  button.b-push { background: var(--push); }
+  button.b-pop { background: var(--pop); }
+  button.b-peek { background: var(--peek); }
+  button.b-query { background: var(--accent); }
+  button.b-reset {
+    font-family: var(--font-sans); font-weight: 500;
+    background: var(--panel); color: var(--text);
+    box-shadow: inset 0 0 0 1px var(--border-strong), 0 3px 0 var(--btn-edge), 0 4px 10px var(--btn-shadow);
+  }
+  button.b-reset:active:not(:disabled) { box-shadow: inset 0 0 0 1px var(--border-strong), 0 0 0 var(--btn-edge); }
+  #inputError { color: var(--danger); font-size: 13px; }
+
+  .main { display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 720px) { .main { grid-template-columns: minmax(0, 1fr); } }
+
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px; min-width: 0; }
+  .panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 12px; }
+  .panel-title { font-family: var(--font-mono); font-size: 13px; color: var(--text-2); }
+  .panel-meta { font-size: 12px; color: var(--muted); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+  /* The stack drawing */
+  .stage { position: relative; display: flex; justify-content: center; padding-top: 72px; }
+  .container {
+    position: relative;
+    width: 180px;
+    min-height: 300px;
+    border: 3px solid var(--border-strong);
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    padding: 8px;
+    display: flex; flex-direction: column-reverse; justify-content: flex-start; gap: 6px;
+  }
+  .cell {
+    height: 42px; border-radius: 6px;
+    border: 1.5px solid var(--border-strong);
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-size: 16px; font-weight: 500;
+    position: relative;
+    transition: background 0.25s, border-color 0.25s, color 0.25s;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 8px;
+  }
+  .cell.hl-push { background: var(--push-bg); border-color: var(--push); color: var(--push); }
+  .cell.hl-peek { background: var(--peek-bg); border-color: var(--peek); color: var(--peek); }
+  .cell.hl-query { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
+  .cell.enter { animation: dropIn 0.45s cubic-bezier(.2,.8,.3,1); }
+  .cell.leave { animation: liftOut 0.45s ease-in forwards; background: var(--pop-bg); border-color: var(--pop); color: var(--pop); }
+  @keyframes dropIn { from { transform: translateY(-90px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  @keyframes liftOut { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-90px); opacity: 0; } }
+  .container.hl-query { border-color: var(--accent); }
+  .container.hl-error { border-color: var(--danger); animation: shake 0.35s; }
+  @keyframes shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+  .top-tag {
+    position: absolute; right: -78px; top: 50%; transform: translateY(-50%);
+    font-family: var(--font-mono); font-size: 12px; color: var(--accent);
+    white-space: nowrap; pointer-events: none;
+  }
+  .top-tag::before { content: "\2190 "; }
+  .empty-note { color: var(--muted); font-style: italic; font-size: 13px; text-align: center; padding: 12px 0; }
+  .floater {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    font-family: var(--font-mono); font-size: 14px; font-weight: 500;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+  }
+  .floater.ret-pop { color: var(--pop); }
+  .floater.ret-push { color: var(--push); }
+  .floater.ret-peek { color: var(--peek); }
+  .floater.ret-query { color: var(--accent); }
+  .floater.ret-error { color: var(--danger); }
+  .legend { margin-top: 14px; font-size: 12px; color: var(--muted); text-align: center; }
+
+  /* Call log */
+  #log { display: flex; flex-direction: column; gap: 6px; max-height: 560px; overflow-y: auto; }
+  .entry {
+    display: grid; grid-template-columns: 2.2em minmax(0, 1fr); gap: 4px 8px;
+    padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border);
+    font-family: var(--font-mono); font-size: 13px;
+  }
+  .entry.latest { border-color: var(--border-strong); background: var(--bg); }
+  .num { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .code { overflow-wrap: anywhere; }
+  .code .m-push { color: var(--push); } .code .m-pop { color: var(--pop); }
+  .code .m-peek { color: var(--peek); } .code .m-query { color: var(--accent); }
+  .ret { grid-column: 2; color: var(--text-2); font-size: 12.5px; overflow-wrap: anywhere; }
+  .ret b { font-weight: 600; color: var(--text); }
+  .ret.err { color: var(--danger); }
+  .ret.err b { color: var(--danger); }
+  .snapshot { grid-column: 2; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+  .log-empty { color: var(--muted); font-style: italic; font-size: 13px; }
+  @media (prefers-reduced-motion: reduce) {
+    .cell.enter, .cell.leave, .container.hl-error { animation-duration: 0.01s; }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Java Stack visualizer</h1>
+    <p class="sub">Call push(), pop(), peek(), isEmpty(), and size() on a java.util.Stack and watch what happens at the top.</p>
+  </header>
+
+  <div class="controls">
+    <div class="group">
+      <label for="typeSelect" class="panel-title">Type</label>
+      <select id="typeSelect">
+        <option value="Integer">Stack&lt;Integer&gt;</option>
+        <option value="String">Stack&lt;String&gt;</option>
+      </select>
+    </div>
+    <div class="divider"></div>
+    <div class="group">
+      <input id="valueInput" type="text" value="40" aria-label="Value to push" autocomplete="off">
+      <button id="btnPush" class="b-push" type="button">push(x)</button>
+      <span id="inputError" hidden></span>
+    </div>
+    <div class="divider"></div>
+    <div class="group">
+      <button id="btnPop" class="b-pop" type="button">pop()</button>
+      <button id="btnPeek" class="b-peek" type="button">peek()</button>
+      <button id="btnEmpty" class="b-query" type="button">isEmpty()</button>
+      <button id="btnSize" class="b-query" type="button">size()</button>
+    </div>
+    <div class="divider"></div>
+    <button id="btnReset" class="b-reset" type="button">Reset</button>
+  </div>
+
+  <div class="main">
+    <section class="panel" aria-label="Stack contents">
+      <div class="panel-head">
+        <span class="panel-title" id="declLabel">Stack&lt;Integer&gt; stack</span>
+        <span class="panel-meta" id="sizeLabel">size 0</span>
+      </div>
+      <div class="stage">
+        <div class="floater" id="floater" hidden></div>
+        <div class="container" id="container"></div>
+      </div>
+      <div class="legend">The top of the stack is the only element you can reach.</div>
+    </section>
+
+    <section class="panel" aria-label="Call history">
+      <div class="panel-head">
+        <span class="panel-title">Calls</span>
+        <span class="panel-meta" id="callCount">0 calls</span>
+      </div>
+      <div id="log"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const container = $("container"), floater = $("floater"), logEl = $("log");
+const buttons = ["btnPush", "btnPop", "btnPeek", "btnEmpty", "btnSize", "btnReset", "typeSelect"].map($);
+
+const SAMPLES = { Integer: ["10", "20", "30"], String: ["\"red\"", "\"green\"", "\"blue\""] };
+const NEXT_SUGGEST = { Integer: ["40", "50", "60", "70", "80", "90", "5", "15"], String: ["\"cyan\"", "\"gold\"", "\"plum\"", "\"teal\"", "\"rose\""] };
+
+let type = "Integer";
+let stack = [];
+let log = [];
+let busy = false;
+let suggestIdx = 0;
+const CLEAR_PAUSE = 220;
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+function setBusy(b) { busy = b; buttons.forEach(el => el.disabled = b); }
+
+function showStr() { return "[" + stack.join(", ") + "]"; }
+
+function renderStack({ enterTop = false, hl = null } = {}) {
+  container.innerHTML = "";
+  container.classList.remove("hl-query", "hl-error");
+  if (stack.length === 0) {
+    const e = document.createElement("div");
+    e.className = "empty-note";
+    e.textContent = "(empty)";
+    container.appendChild(e);
+  }
+  stack.forEach((v, i) => {
+    const c = document.createElement("div");
+    c.className = "cell";
+    c.textContent = v;
+    const isTop = i === stack.length - 1;
+    if (isTop) {
+      const t = document.createElement("span");
+      t.className = "top-tag";
+      t.textContent = "top";
+      c.style.overflow = "visible";
+      c.appendChild(t);
+      if (enterTop) c.classList.add("enter");
+      if (hl) c.classList.add(hl);
+    }
+    container.appendChild(c);
+  });
+  $("sizeLabel").textContent = "size " + stack.length;
+}
+
+function showFloater(text, cls) {
+  floater.className = "floater " + cls;
+  floater.textContent = text;
+  floater.hidden = false;
+}
+function clearHighlights() {
+  floater.hidden = true;
+  container.classList.remove("hl-query", "hl-error");
+  container.querySelectorAll(".cell").forEach(c => c.classList.remove("hl-push", "hl-peek", "hl-query", "enter"));
+}
+
+function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+function renderLog() {
+  $("callCount").textContent = log.length + (log.length === 1 ? " call" : " calls");
+  if (log.length === 0) { logEl.innerHTML = '<div class="log-empty">No calls yet.</div>'; return; }
+  logEl.innerHTML = log.map((e, i) => ({ e, i })).reverse().map(({ e, i }) => `
+    <div class="entry${i === log.length - 1 ? " latest" : ""}">
+      <span class="num">${i + 1}</span>
+      <span class="code">stack.<span class="m-${e.kind}">${esc(e.method)}</span>(${esc(e.arg || "")});</span>
+      <span class="ret${e.error ? " err" : ""}">${e.error ? "throws <b>" + esc(e.error) + "</b>" : (e.returns === undefined ? "" : "returns <b>" + esc(e.returns) + "</b>")}</span>
+      <span class="snapshot">stack is now ${esc(e.after)}</span>
+    </div>`).join("");
+  logEl.scrollTop = 0;
+}
+
+function addLog(entry) { entry.after = showStr() + "  (bottom → top)"; log.push(entry); renderLog(); }
+
+function normalizeValue(raw) {
+  const s = raw.trim();
+  if (type === "Integer") {
+    if (!/^-?\d+$/.test(s)) return { error: "Enter a whole number for Stack<Integer>." };
+    const n = Number(s);
+    if (n > 2147483647 || n < -2147483648) return { error: "That value is outside the int range." };
+    return { value: String(n) };
+  }
+  if (s === "") return { error: "Enter some text to push." };
+  const bare = s.replace(/^"(.*)"$/, "$1");
+  return { value: "\"" + bare + "\"" };
+}
+
+function advanceSuggestion() {
+  const list = NEXT_SUGGEST[type];
+  $("valueInput").value = list[suggestIdx % list.length];
+  suggestIdx++;
+}
+
+async function beat() { clearHighlights(); await sleep(CLEAR_PAUSE); }
+
+async function doPush() {
+  const r = normalizeValue($("valueInput").value);
+  const errEl = $("inputError");
+  if (r.error) { errEl.textContent = r.error; errEl.hidden = false; return; }
+  errEl.hidden = true;
+  setBusy(true);
+  await beat();
+  stack.push(r.value);
+  renderStack({ enterTop: true, hl: "hl-push" });
+  showFloater("returns " + r.value, "ret-push");
+  addLog({ kind: "push", method: "push", arg: r.value, returns: r.value });
+  advanceSuggestion();
+  await sleep(450);
+  setBusy(false);
+}
+
+async function emptyError(method, kind) {
+  container.classList.add("hl-error");
+  showFloater("EmptyStackException", "ret-error");
+  addLog({ kind, method, error: "java.util.EmptyStackException" });
+  await sleep(400);
+}
+
+async function doPop() {
+  setBusy(true);
+  await beat();
+  if (stack.length === 0) { await emptyError("pop", "pop"); setBusy(false); return; }
+  const cells = container.querySelectorAll(".cell");
+  const topCell = cells[cells.length - 1];
+  const v = stack[stack.length - 1];
+  topCell.querySelector(".top-tag")?.remove();
+  topCell.classList.add("leave");
+  showFloater("returns " + v, "ret-pop");
+  await sleep(450);
+  stack.pop();
+  renderStack();
+  addLog({ kind: "pop", method: "pop", returns: v });
+  setBusy(false);
+}
+
+async function doPeek() {
+  setBusy(true);
+  await beat();
+  if (stack.length === 0) { await emptyError("peek", "peek"); setBusy(false); return; }
+  const v = stack[stack.length - 1];
+  renderStack({ hl: "hl-peek" });
+  showFloater("returns " + v, "ret-peek");
+  addLog({ kind: "peek", method: "peek", returns: v });
+  await sleep(300);
+  setBusy(false);
+}
+
+async function doQuery(method) {
+  setBusy(true);
+  await beat();
+  const result = method === "isEmpty" ? String(stack.length === 0) : String(stack.length);
+  renderStack();
+  container.classList.add("hl-query");
+  showFloater("returns " + result, "ret-query");
+  addLog({ kind: "query", method, returns: result });
+  await sleep(300);
+  setBusy(false);
+}
+
+function loadSample() {
+  stack = [];
+  log = [];
+  suggestIdx = 0;
+  $("declLabel").textContent = "Stack<" + type + "> stack";
+  for (const v of SAMPLES[type]) {
+    stack.push(v);
+    log.push({ kind: "push", method: "push", arg: v, returns: v, after: showStr() + "  (bottom → top)" });
+  }
+  renderStack({ hl: "hl-push" });
+  showFloater("returns " + stack[stack.length - 1], "ret-push");
+  renderLog();
+  advanceSuggestion();
+  $("inputError").hidden = true;
+}
+
+function doReset() {
+  stack = [];
+  log = [];
+  suggestIdx = 0;
+  clearHighlights();
+  renderStack();
+  renderLog();
+  advanceSuggestion();
+  $("inputError").hidden = true;
+}
+
+$("btnPush").addEventListener("click", () => { if (!busy) doPush(); });
+$("valueInput").addEventListener("keydown", (e) => { if (e.key === "Enter" && !busy) doPush(); });
+$("btnPop").addEventListener("click", () => { if (!busy) doPop(); });
+$("btnPeek").addEventListener("click", () => { if (!busy) doPeek(); });
+$("btnEmpty").addEventListener("click", () => { if (!busy) doQuery("isEmpty"); });
+$("btnSize").addEventListener("click", () => { if (!busy) doQuery("size"); });
+$("btnReset").addEventListener("click", () => { if (!busy) doReset(); });
+$("typeSelect").addEventListener("change", (e) => { type = e.target.value; loadSample(); });
+
+loadSample();
+</script>
+
+</body></html>
