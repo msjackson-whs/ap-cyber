@@ -1,0 +1,558 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Java ArrayList Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  /* Layout: controls on top, backing array on the left, call log on the right; stacks to one column on narrow screens */
+  :root {
+    --bg: #f6f6f3;
+    --panel: #ffffff;
+    --border: #d9d8d1;
+    --border-strong: #b5b3a8;
+    --text: #22221f;
+    --text-2: #5b5a53;
+    --muted: #96948a;
+    --accent: #185fa5;
+    --accent-bg: #e3effa;
+    --add: #1d7a4f;
+    --add-bg: #e2f4ea;
+    --remove: #9a5a08;
+    --remove-bg: #fbeedb;
+    --get: #534ab7;
+    --get-bg: #edecfd;
+    --set: #0f7480;
+    --set-bg: #ddf2f4;
+    --size: #4f5866;
+    --danger: #a32d2d;
+    --danger-bg: #fcebeb;
+    --on-fill: #ffffff;
+    --btn-edge: rgba(0, 0, 0, 0.22);
+    --btn-shadow: rgba(0, 0, 0, 0.10);
+    --font-sans: "IBM Plex Sans", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    --font-mono: "IBM Plex Mono", "SF Mono", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17181a; --panel: #212226; --border: #34363b; --border-strong: #4a4c53;
+      --text: #ecebe6; --text-2: #b4b2aa; --muted: #7d7b74;
+      --accent: #7db6ec; --accent-bg: #1c3045;
+      --add: #6fd2a0; --add-bg: #183528; --remove: #f0b45e; --remove-bg: #3a2a12;
+      --get: #aea7f5; --get-bg: #2a2748; --set: #6fd0dc; --set-bg: #163338;
+      --size: #aab2c0; --danger: #f08b8b; --danger-bg: #3d1c1c;
+      --on-fill: #15161a; --btn-edge: rgba(0, 0, 0, 0.55); --btn-shadow: rgba(0, 0, 0, 0.35);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17181a; --panel: #212226; --border: #34363b; --border-strong: #4a4c53;
+    --text: #ecebe6; --text-2: #b4b2aa; --muted: #7d7b74;
+    --accent: #7db6ec; --accent-bg: #1c3045;
+    --add: #6fd2a0; --add-bg: #183528; --remove: #f0b45e; --remove-bg: #3a2a12;
+    --get: #aea7f5; --get-bg: #2a2748; --set: #6fd0dc; --set-bg: #163338;
+    --size: #aab2c0; --danger: #f08b8b; --danger-bg: #3d1c1c;
+    --on-fill: #15161a; --btn-edge: rgba(0, 0, 0, 0.55); --btn-shadow: rgba(0, 0, 0, 0.35);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    padding-inline: 20px;
+    padding-block: 32px 60px;
+  }
+  .wrap { max-width: 1240px; margin: 0 auto; display: grid; gap: 20px; }
+  h1 { font-size: 22px; font-weight: 600; margin: 0; text-wrap: balance; }
+  p.sub { color: var(--text-2); margin: 4px 0 0; font-size: 14px; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 10px 8px; align-items: center; }
+  .group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .divider { width: 1px; align-self: stretch; background: var(--border); margin: 0 4px; }
+  .lbl { font-family: var(--font-mono); font-size: 13px; color: var(--text-2); }
+  select, input {
+    font-family: inherit; font-size: 14px;
+    border: 1px solid var(--border-strong); border-radius: 6px;
+    background: var(--panel); color: var(--text);
+    padding: 8px 10px;
+  }
+  input { font-family: var(--font-mono); }
+  #indexInput { width: 70px; }
+  #valueInput { width: 100px; }
+  button {
+    cursor: pointer; font-family: var(--font-mono); font-size: 13.5px; font-weight: 600;
+    border: none; border-radius: 999px;
+    padding: 9px 18px;
+    color: var(--on-fill);
+    box-shadow: 0 3px 0 var(--btn-edge), 0 4px 10px var(--btn-shadow);
+    transition: transform 0.08s, box-shadow 0.08s, filter 0.15s;
+  }
+  button:hover:not(:disabled) { filter: brightness(1.08); }
+  button:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 0 0 var(--btn-edge), 0 1px 3px var(--btn-shadow); }
+  button:disabled, select:disabled, input:disabled { opacity: 0.45; cursor: default; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  button.b-add { background: var(--add); }
+  button.b-remove { background: var(--remove); }
+  button.b-get { background: var(--get); }
+  button.b-set { background: var(--set); }
+  button.b-size { background: var(--size); }
+  button.b-reset {
+    font-family: var(--font-sans); font-weight: 500;
+    background: var(--panel); color: var(--text);
+    box-shadow: inset 0 0 0 1px var(--border-strong), 0 3px 0 var(--btn-edge), 0 4px 10px var(--btn-shadow);
+  }
+  button.b-reset:active:not(:disabled) { box-shadow: inset 0 0 0 1px var(--border-strong), 0 0 0 var(--btn-edge); }
+  #inputError { color: var(--danger); font-size: 13px; }
+
+  .main { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; }
+  @media (max-width: 960px) { .main { grid-template-columns: minmax(0, 1fr); } }
+
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px; min-width: 0; }
+  .panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .panel-title { font-family: var(--font-mono); font-size: 13px; color: var(--text-2); }
+  .panel-meta { font-size: 12px; color: var(--muted); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+  /* Return value line: plain text, no shape, so it never reads as an array element */
+  #floater { font-family: var(--font-mono); font-size: 15px; font-weight: 500; min-height: 24px; margin: 4px 0 0; }
+  #floater.c-add { color: var(--add); }
+  #floater.c-remove { color: var(--remove); }
+  #floater.c-get { color: var(--get); }
+  #floater.c-set { color: var(--set); }
+  #floater.c-size { color: var(--size); }
+  #floater.c-grow { color: var(--accent); }
+  #floater.c-error { color: var(--danger); }
+
+  /* The backing array */
+  .scroller { overflow-x: auto; padding-bottom: 6px; }
+  .stage { position: relative; height: 170px; margin: 0 4px; --dur: 400ms; }
+  .slot {
+    position: absolute; top: 70px; width: 60px; height: 60px;
+    border: 1.5px dashed var(--border-strong); border-radius: 6px;
+    transition: border-color 0.25s, background 0.25s;
+  }
+  .slot.used { border-style: solid; border-color: var(--border); }
+  .slot.fresh { border-color: var(--accent); background: var(--accent-bg); }
+  .idx {
+    position: absolute; top: 136px; width: 60px; text-align: center;
+    font-family: var(--font-mono); font-size: 12px; color: var(--text-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .idx.unused { color: var(--muted); opacity: 0.6; }
+  .cell {
+    position: absolute; top: 70px; width: 60px; height: 60px;
+    border-radius: 6px; border: 1.5px solid var(--border-strong);
+    background: var(--bg); color: var(--text);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-size: 15px; font-weight: 500;
+    padding: 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    transition: left var(--dur) cubic-bezier(.3,.7,.3,1), top var(--dur) cubic-bezier(.3,.7,.3,1),
+                opacity var(--dur), background 0.25s, border-color 0.25s, color 0.25s;
+    z-index: 2;
+  }
+  .cell.hl-add { background: var(--add-bg); border-color: var(--add); color: var(--add); }
+  .cell.hl-shift { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
+  .cell.hl-remove { background: var(--remove-bg); border-color: var(--remove); color: var(--remove); }
+  .cell.hl-get { background: var(--get-bg); border-color: var(--get); color: var(--get); }
+  .cell.hl-set { background: var(--set-bg); border-color: var(--set); color: var(--set); }
+  .stage.shake { animation: shake 0.35s; }
+  @keyframes shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+  .key { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 12px; color: var(--muted); }
+  .key span { display: inline-flex; align-items: center; gap: 6px; }
+  .sw { width: 12px; height: 12px; border-radius: 3px; border: 1.5px solid; display: inline-block; }
+  .sw.shift { background: var(--accent-bg); border-color: var(--accent); }
+  .sw.empty { border-style: dashed; border-color: var(--border-strong); }
+
+  /* Call log */
+  #log { display: flex; flex-direction: column; gap: 6px; max-height: 560px; overflow-y: auto; }
+  .entry {
+    display: grid; grid-template-columns: 2.2em minmax(0, 1fr); gap: 2px 8px;
+    padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border);
+    font-family: var(--font-mono); font-size: 13px;
+  }
+  .entry.latest { border-color: var(--border-strong); background: var(--bg); }
+  .num { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .code { overflow-wrap: anywhere; }
+  .m-add { color: var(--add); } .m-remove { color: var(--remove); }
+  .m-get { color: var(--get); } .m-set { color: var(--set); } .m-size { color: var(--size); }
+  .ret, .note, .snapshot { grid-column: 2; overflow-wrap: anywhere; }
+  .ret { color: var(--text-2); font-size: 12.5px; }
+  .ret b { font-weight: 600; color: var(--text); }
+  .ret.err, .ret.err b { color: var(--danger); }
+  .note { color: var(--accent); font-size: 12px; }
+  .snapshot { color: var(--muted); font-size: 12px; }
+  .log-empty { color: var(--muted); font-style: italic; font-size: 13px; }
+  @media (prefers-reduced-motion: reduce) {
+    .stage.shake { animation-duration: 0.01s; }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Java ArrayList visualizer</h1>
+    <p class="sub">Call add, remove, get, set, and size on an ArrayList and watch each element shift one slot at a time.</p>
+  </header>
+
+  <div class="controls">
+    <div class="group">
+      <label for="typeSelect" class="lbl">Type</label>
+      <select id="typeSelect">
+        <option value="Integer">ArrayList&lt;Integer&gt;</option>
+        <option value="String">ArrayList&lt;String&gt;</option>
+      </select>
+      <label for="speedSelect" class="lbl">Speed</label>
+      <select id="speedSelect">
+        <option value="750">Slow</option>
+        <option value="420" selected>Normal</option>
+        <option value="180">Fast</option>
+      </select>
+    </div>
+    <div class="divider"></div>
+    <div class="group">
+      <label for="indexInput" class="lbl">i =</label>
+      <input id="indexInput" type="number" value="0" step="1" autocomplete="off">
+      <label for="valueInput" class="lbl">x =</label>
+      <input id="valueInput" type="text" value="10" autocomplete="off">
+    </div>
+    <div class="divider"></div>
+    <div class="group">
+      <button id="btnAdd" class="b-add" type="button">add(x)</button>
+      <button id="btnAddAt" class="b-add" type="button">add(i, x)</button>
+      <button id="btnRemove" class="b-remove" type="button">remove(i)</button>
+      <button id="btnGet" class="b-get" type="button">get(i)</button>
+      <button id="btnSet" class="b-set" type="button">set(i, x)</button>
+      <button id="btnSize" class="b-size" type="button">size()</button>
+    </div>
+    <div class="divider"></div>
+    <button id="btnReset" class="b-reset" type="button">Reset</button>
+    <span id="inputError" hidden></span>
+  </div>
+
+  <div class="main">
+    <section class="panel" aria-label="ArrayList contents">
+      <div class="panel-head">
+        <span class="panel-title" id="declLabel">ArrayList&lt;Integer&gt; list</span>
+        <span class="panel-meta" id="sizeLabel">size 0 · capacity 10</span>
+      </div>
+      <div id="floater" aria-live="polite"></div>
+      <div class="scroller">
+        <div class="stage" id="stage"></div>
+      </div>
+      <div class="key">
+        <span><i class="sw shift"></i>shifted during this call</span>
+        <span><i class="sw empty"></i>unused capacity in the backing array</span>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="Call history">
+      <div class="panel-head">
+        <span class="panel-title">Calls (newest first)</span>
+        <span class="panel-meta" id="callCount">0 calls</span>
+      </div>
+      <div id="log"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const stage = $("stage"), floater = $("floater"), logEl = $("log");
+const controls = ["btnAdd", "btnAddAt", "btnRemove", "btnGet", "btnSet", "btnSize", "btnReset", "typeSelect", "speedSelect", "indexInput", "valueInput"].map($);
+
+const SLOT = 60, STEP = 68, BASE_TOP = 70, LIFT_TOP = 0, START_CAP = 10;
+const STRING_SUGGEST = ["\"red\"", "\"green\"", "\"blue\"", "\"cyan\"", "\"gold\"", "\"plum\"", "\"teal\"", "\"rose\""];
+
+let type = "Integer";
+let list = [];          // [{ val, el }]
+let cap = START_CAP;
+let log = [];
+let busy = false;
+let suggestIdx = 0;
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+const dur = () => Number($("speedSelect").value);
+const reflow = (el) => void el.offsetWidth;
+
+function setBusy(b) { busy = b; controls.forEach(el => el.disabled = b); }
+function showStr() { return "[" + list.map(n => n.val).join(", ") + "]"; }
+function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+/* ---------- drawing ---------- */
+function renderSlots(freshFrom = -1) {
+  stage.querySelectorAll(".slot, .idx").forEach(n => n.remove());
+  stage.style.width = (cap * STEP - (STEP - SLOT)) + "px";
+  for (let i = 0; i < cap; i++) {
+    const s = document.createElement("div");
+    s.className = "slot" + (i < list.length ? " used" : "") + (freshFrom >= 0 && i >= freshFrom ? " fresh" : "");
+    s.style.left = (i * STEP) + "px";
+    stage.prepend(s);
+    const l = document.createElement("div");
+    l.className = "idx" + (i < list.length ? "" : " unused");
+    l.style.left = (i * STEP) + "px";
+    l.textContent = i;
+    stage.appendChild(l);
+  }
+  updateMeta();
+}
+function refreshSlotState() {
+  const slots = stage.querySelectorAll(".slot"), idxs = stage.querySelectorAll(".idx");
+  // slots were prepended, so they are in reverse order
+  slots.forEach((s, k) => { const i = cap - 1 - k; s.classList.toggle("used", i < list.length); });
+  idxs.forEach((l, i) => l.classList.toggle("unused", i >= list.length));
+  updateMeta();
+}
+function updateMeta() { $("sizeLabel").textContent = `size ${list.length} · capacity ${cap}`; }
+
+function place(el, i, lifted = false) {
+  el.style.left = (i * STEP) + "px";
+  el.style.top = (lifted ? LIFT_TOP : BASE_TOP) + "px";
+}
+function makeCell(val, i) {
+  const el = document.createElement("div");
+  el.className = "cell";
+  el.textContent = val;
+  el.title = val;
+  place(el, i, true);
+  el.style.opacity = "0";
+  stage.appendChild(el);
+  reflow(el);
+  return el;
+}
+
+function say(text, cls) { floater.className = "c-" + cls; floater.textContent = text; }
+function clearHighlights() {
+  say("", "");
+  stage.querySelectorAll(".cell").forEach(c => c.classList.remove("hl-add", "hl-shift", "hl-remove", "hl-get", "hl-set"));
+  stage.querySelectorAll(".slot.fresh").forEach(s => s.classList.remove("fresh"));
+}
+async function beat() { clearHighlights(); await sleep(220); }
+function applyDur() { stage.style.setProperty("--dur", dur() + "ms"); }
+
+/* ---------- log ---------- */
+function renderLog() {
+  $("callCount").textContent = log.length + (log.length === 1 ? " call" : " calls");
+  if (log.length === 0) { logEl.innerHTML = '<div class="log-empty">No calls yet.</div>'; return; }
+  logEl.innerHTML = log.map((e, i) => ({ e, i })).reverse().map(({ e, i }) => `
+    <div class="entry${i === log.length - 1 ? " latest" : ""}">
+      <span class="num">${i + 1}</span>
+      <span class="code">list.<span class="m-${e.kind}">${esc(e.method)}</span>(${esc(e.args || "")});</span>
+      <span class="ret${e.error ? " err" : ""}">${e.error ? "throws <b>" + esc(e.error) + "</b>" : (e.voidRet ? "returns nothing (void)" : "returns <b>" + esc(e.returns) + "</b>")}</span>
+      ${e.note ? `<span class="note">${esc(e.note)}</span>` : ""}
+      <span class="snapshot">list is now ${esc(showStrAt(e))}</span>
+    </div>`).join("");
+  logEl.scrollTop = 0;
+}
+function showStrAt(e) { return e.after; }
+function addLog(entry) { entry.after = showStr(); log.push(entry); renderLog(); }
+
+/* ---------- input ---------- */
+function readValue() {
+  const s = $("valueInput").value.trim();
+  if (type === "Integer") {
+    if (!/^-?\d+$/.test(s)) return { error: "Enter a whole number for x." };
+    const n = Number(s);
+    if (n > 2147483647 || n < -2147483648) return { error: "x is outside the int range." };
+    return { value: String(n) };
+  }
+  if (s === "") return { error: "Enter some text for x." };
+  return { value: "\"" + s.replace(/^"(.*)"$/, "$1") + "\"" };
+}
+function readIndex() {
+  const s = $("indexInput").value.trim();
+  if (!/^-?\d+$/.test(s)) return { error: "Enter a whole number for i." };
+  return { value: Number(s) };
+}
+function showInputError(msg) { const e = $("inputError"); e.textContent = msg; e.hidden = !msg; }
+function advanceSuggestion() {
+  $("valueInput").value = type === "Integer"
+    ? String((suggestIdx + 1) * 10)
+    : STRING_SUGGEST[suggestIdx % STRING_SUGGEST.length];
+  suggestIdx++;
+}
+
+async function throwIOOBE(method, args, kind, i) {
+  const msg = `Index ${i} out of bounds for length ${list.length}`;
+  stage.classList.remove("shake"); reflow(stage); stage.classList.add("shake");
+  say("IndexOutOfBoundsException: " + msg, "error");
+  addLog({ kind, method, args, error: "IndexOutOfBoundsException: " + msg });
+  await sleep(400);
+}
+
+/* ---------- capacity growth (Java grows by about 1.5x) ---------- */
+async function growIfFull() {
+  if (list.length < cap) return null;
+  const oldCap = cap;
+  cap = oldCap + (oldCap >> 1);
+  say(`backing array is full: copying into a new array of capacity ${cap}`, "grow");
+  renderSlots(oldCap);
+  await sleep(dur() * 2);
+  return `Array was full: copied ${oldCap} elements into a new array of capacity ${cap}.`;
+}
+
+/* ---------- operations ---------- */
+async function doAdd() {
+  const v = readValue(); if (v.error) return showInputError(v.error);
+  showInputError("");
+  setBusy(true); applyDur();
+  await beat();
+  const growNote = await growIfFull();
+  const i = list.length;
+  const el = makeCell(v.value, i);
+  el.classList.add("hl-add");
+  el.style.opacity = "1";
+  await sleep(dur() * 0.4);
+  place(el, i);
+  list.push({ val: v.value, el });
+  await sleep(dur());
+  refreshSlotState();
+  say("returns true", "add");
+  addLog({ kind: "add", method: "add", args: v.value, returns: "true",
+           note: (growNote ? growNote + " " : "") + "Added at the end: 0 elements shifted." });
+  advanceSuggestion();
+  setBusy(false);
+}
+
+async function doAddAt() {
+  const ix = readIndex(); if (ix.error) return showInputError(ix.error);
+  const v = readValue(); if (v.error) return showInputError(v.error);
+  showInputError("");
+  const i = ix.value, args = `${i}, ${v.value}`;
+  setBusy(true); applyDur();
+  await beat();
+  if (i < 0 || i > list.length) { await throwIOOBE("add", args, "add", i); setBusy(false); return; }
+  const growNote = await growIfFull();
+  // shift right, starting from the last element and working back to i
+  let shifted = 0;
+  for (let k = list.length - 1; k >= i; k--) {
+    const el = list[k].el;
+    el.classList.add("hl-shift");
+    place(el, k + 1);
+    shifted++;
+    say(`shifting index ${k} → ${k + 1}`, "grow");
+    await sleep(dur());
+  }
+  const el = makeCell(v.value, i);
+  el.classList.add("hl-add");
+  el.style.opacity = "1";
+  await sleep(dur() * 0.4);
+  place(el, i);
+  list.splice(i, 0, { val: v.value, el });
+  await sleep(dur());
+  refreshSlotState();
+  say("returns nothing (void)", "add");
+  addLog({ kind: "add", method: "add", args, voidRet: true,
+           note: (growNote ? growNote + " " : "") + `Shifted ${shifted} element${shifted === 1 ? "" : "s"} right.` });
+  advanceSuggestion();
+  setBusy(false);
+}
+
+async function doRemove() {
+  const ix = readIndex(); if (ix.error) return showInputError(ix.error);
+  showInputError("");
+  const i = ix.value;
+  setBusy(true); applyDur();
+  await beat();
+  if (i < 0 || i >= list.length) { await throwIOOBE("remove", String(i), "remove", i); setBusy(false); return; }
+  const gone = list[i];
+  gone.el.classList.add("hl-remove");
+  await sleep(dur() * 0.6);
+  place(gone.el, i, true);
+  gone.el.style.opacity = "0";
+  say("removing " + gone.val, "remove");
+  await sleep(dur());
+  gone.el.remove();
+  list.splice(i, 1);
+  // shift left, starting just after the gap and working forward
+  let shifted = 0;
+  for (let k = i; k < list.length; k++) {
+    const el = list[k].el;
+    el.classList.add("hl-shift");
+    place(el, k);
+    shifted++;
+    say(`shifting index ${k + 1} → ${k}`, "grow");
+    await sleep(dur());
+  }
+  refreshSlotState();
+  say("returns " + gone.val, "remove");
+  addLog({ kind: "remove", method: "remove", args: String(i), returns: gone.val,
+           note: `Shifted ${shifted} element${shifted === 1 ? "" : "s"} left.` });
+  setBusy(false);
+}
+
+async function doGet() {
+  const ix = readIndex(); if (ix.error) return showInputError(ix.error);
+  showInputError("");
+  const i = ix.value;
+  setBusy(true); applyDur();
+  await beat();
+  if (i < 0 || i >= list.length) { await throwIOOBE("get", String(i), "get", i); setBusy(false); return; }
+  list[i].el.classList.add("hl-get");
+  say("returns " + list[i].val, "get");
+  addLog({ kind: "get", method: "get", args: String(i), returns: list[i].val, note: "Direct index lookup: 0 elements shifted." });
+  await sleep(250);
+  setBusy(false);
+}
+
+async function doSet() {
+  const ix = readIndex(); if (ix.error) return showInputError(ix.error);
+  const v = readValue(); if (v.error) return showInputError(v.error);
+  showInputError("");
+  const i = ix.value, args = `${i}, ${v.value}`;
+  setBusy(true); applyDur();
+  await beat();
+  if (i < 0 || i >= list.length) { await throwIOOBE("set", args, "set", i); setBusy(false); return; }
+  const old = list[i];
+  old.el.classList.add("hl-remove");
+  await sleep(dur() * 0.5);
+  place(old.el, i, true);
+  old.el.style.opacity = "0";
+  await sleep(dur());
+  old.el.remove();
+  const el = makeCell(v.value, i);
+  el.classList.add("hl-set");
+  el.style.opacity = "1";
+  await sleep(dur() * 0.3);
+  place(el, i);
+  list[i] = { val: v.value, el };
+  await sleep(dur());
+  say("returns " + old.val, "set");
+  addLog({ kind: "set", method: "set", args, returns: old.val, note: "Replaced in place: 0 elements shifted." });
+  advanceSuggestion();
+  setBusy(false);
+}
+
+async function doSize() {
+  setBusy(true);
+  await beat();
+  say("returns " + list.length, "size");
+  addLog({ kind: "size", method: "size", args: "", returns: String(list.length) });
+  await sleep(200);
+  setBusy(false);
+}
+
+function doReset() {
+  $("declLabel").textContent = "ArrayList<" + type + "> list";
+  stage.querySelectorAll(".cell").forEach(c => c.remove());
+  list = []; log = []; cap = START_CAP; suggestIdx = 0;
+  clearHighlights();
+  renderSlots();
+  renderLog();
+  advanceSuggestion();
+  $("indexInput").value = "0";
+  showInputError("");
+}
+
+const guard = (fn) => () => { if (!busy) fn(); };
+$("btnAdd").addEventListener("click", guard(doAdd));
+$("btnAddAt").addEventListener("click", guard(doAddAt));
+$("btnRemove").addEventListener("click", guard(doRemove));
+$("btnGet").addEventListener("click", guard(doGet));
+$("btnSet").addEventListener("click", guard(doSet));
+$("btnSize").addEventListener("click", guard(doSize));
+$("btnReset").addEventListener("click", guard(doReset));
+$("typeSelect").addEventListener("change", (e) => { type = e.target.value; doReset(); });
+
+doReset();
+</script>
+
+</body></html>
