@@ -195,7 +195,7 @@
     </div>
     <div class="divider"></div>
     <div class="group">
-      <input id="valueInput" type="text" value="40" aria-label="Value to push" autocomplete="off">
+      <input id="valueInput" type="text" value="10" aria-label="Value to push" autocomplete="off">
       <button id="btnPush" class="b-push" type="button">push(x)</button>
       <span id="inputError" hidden></span>
     </div>
@@ -238,8 +238,7 @@ const $ = (id) => document.getElementById(id);
 const container = $("container"), floater = $("floater"), logEl = $("log");
 const buttons = ["btnPush", "btnPop", "btnPeek", "btnEmpty", "btnSize", "btnReset", "typeSelect"].map($);
 
-const SAMPLES = { Integer: ["10", "20", "30"], String: ["\"red\"", "\"green\"", "\"blue\""] };
-const NEXT_SUGGEST = { Integer: ["40", "50", "60", "70", "80", "90", "5", "15"], String: ["\"cyan\"", "\"gold\"", "\"plum\"", "\"teal\"", "\"rose\""] };
+const STRING_SUGGEST = ["\"red\"", "\"green\"", "\"blue\"", "\"cyan\"", "\"gold\"", "\"plum\"", "\"teal\"", "\"rose\""];
 
 let type = "Integer";
 let stack = [];
@@ -323,8 +322,9 @@ function normalizeValue(raw) {
 }
 
 function advanceSuggestion() {
-  const list = NEXT_SUGGEST[type];
-  $("valueInput").value = list[suggestIdx % list.length];
+  $("valueInput").value = type === "Integer"
+    ? String((suggestIdx + 1) * 10)
+    : STRING_SUGGEST[suggestIdx % STRING_SUGGEST.length];
   suggestIdx++;
 }
 
@@ -394,23 +394,8 @@ async function doQuery(method) {
   setBusy(false);
 }
 
-function loadSample() {
-  stack = [];
-  log = [];
-  suggestIdx = 0;
-  $("declLabel").textContent = "Stack<" + type + "> stack";
-  for (const v of SAMPLES[type]) {
-    stack.push(v);
-    log.push({ kind: "push", method: "push", arg: v, returns: v, after: showStr() + "  (bottom → top)" });
-  }
-  renderStack({ hl: "hl-push" });
-  showFloater("returns " + stack[stack.length - 1], "ret-push");
-  renderLog();
-  advanceSuggestion();
-  $("inputError").hidden = true;
-}
-
 function doReset() {
+  $("declLabel").textContent = "Stack<" + type + "> stack";
   stack = [];
   log = [];
   suggestIdx = 0;
@@ -428,9 +413,9 @@ $("btnPeek").addEventListener("click", () => { if (!busy) doPeek(); });
 $("btnEmpty").addEventListener("click", () => { if (!busy) doQuery("isEmpty"); });
 $("btnSize").addEventListener("click", () => { if (!busy) doQuery("size"); });
 $("btnReset").addEventListener("click", () => { if (!busy) doReset(); });
-$("typeSelect").addEventListener("change", (e) => { type = e.target.value; loadSample(); });
+$("typeSelect").addEventListener("change", (e) => { type = e.target.value; doReset(); });
 
-loadSample();
+doReset();
 </script>
 
 </body></html>
