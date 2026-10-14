@@ -105,14 +105,14 @@
   .panel-meta { font-size: 12px; color: var(--muted); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
   /* Return value line: plain text, no shape */
-  #floater { font-family: var(--font-mono); font-size: 15px; font-weight: 500; min-height: 24px; margin: 4px 0 0; text-align: right; padding-right: 20px; }
+  #floater { font-family: var(--font-mono); font-size: 15px; font-weight: 500; min-height: 24px; margin: 4px 0 0; padding-left: 20px; }
   #floater.c-add { color: var(--add); }
   #floater.c-remove { color: var(--remove); }
   #floater.c-peek { color: var(--peek); }
   #floater.c-query { color: var(--accent); }
   #floater.c-error { color: var(--danger); }
 
-  /* The queue drawing: back on the left, front on the right, inside an open-ended tube */
+  /* The queue drawing: front on the left, back on the right, inside an open-ended tube */
   .scroller { overflow-x: auto; padding-bottom: 6px; }
   .stage { position: relative; height: 200px; margin: 0 4px; min-width: 100%; overflow: hidden; }
   .tube {
@@ -125,7 +125,7 @@
   @keyframes shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
   .node {
     position: absolute; top: 50px; width: 64px; height: 60px;
-    transition: right 0.45s cubic-bezier(.3,.7,.3,1), opacity 0.45s;
+    transition: left 0.45s cubic-bezier(.3,.7,.3,1), opacity 0.45s;
   }
   .box {
     width: 64px; height: 60px; border-radius: 6px;
@@ -136,7 +136,7 @@
     transition: background 0.25s, border-color 0.25s, color 0.25s;
   }
   .arrow {
-    position: absolute; left: -32px; top: 0; width: 32px; height: 60px;
+    position: absolute; left: 64px; top: 0; width: 32px; height: 60px;
     display: flex; align-items: center; justify-content: center;
     color: var(--muted); font-family: var(--font-mono); font-size: 18px;
     transition: opacity 0.25s;
@@ -149,11 +149,11 @@
   .tag {
     position: absolute; top: 128px; width: 64px; text-align: center;
     font-family: var(--font-mono); font-size: 12px; color: var(--accent);
-    transition: right 0.45s cubic-bezier(.3,.7,.3,1), opacity 0.25s;
+    transition: left 0.45s cubic-bezier(.3,.7,.3,1), opacity 0.25s;
     pointer-events: none;
   }
   .tag::before { content: "\2191"; display: block; line-height: 1; }
-  .empty-note { position: absolute; top: 68px; right: 16px; color: var(--muted); font-style: italic; font-size: 13px; }
+  .empty-note { position: absolute; top: 68px; left: 16px; color: var(--muted); font-style: italic; font-size: 13px; }
 
   .key { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 6px; font-size: 12px; color: var(--muted); }
 
@@ -219,8 +219,8 @@
   <div class="main">
     <section class="panel" aria-label="Queue contents">
       <div class="panel-head">
-        <span class="panel-meta" id="sizeLabel">size 0</span>
         <span class="panel-title" id="declLabel">Queue&lt;Integer&gt; q = new LinkedList&lt;&gt;();</span>
+        <span class="panel-meta" id="sizeLabel">size 0</span>
       </div>
       <div id="floater" aria-live="polite"></div>
       <div class="scroller">
@@ -232,7 +232,7 @@
         </div>
       </div>
       <div class="key">
-        <span>New elements join at the back (left). Elements leave from the front (right). Nothing in the middle is ever touched.</span>
+        <span>Elements leave from the front (left). New elements join at the back (right). Nothing in the middle is ever touched.</span>
       </div>
     </section>
 
@@ -267,16 +267,16 @@ function showStr() { return "[" + queue.map(n => n.val).join(", ") + "]"; }
 function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 
 /* ---------- drawing ---------- */
-// index 0 is the front, drawn at the right end; higher indexes sit further left
-const rightFor = (i) => PAD + i * STEP;
+// index 0 is the front, drawn at the left end; higher indexes sit further right
+const posFor = (i) => PAD + i * STEP;
 function place(el, i) {
-  el.style.right = rightFor(i) + "px";
+  el.style.left = posFor(i) + "px";
   el.style.top = BASE_TOP + "px";
 }
 function makeNode(val) {
   const el = document.createElement("div");
   el.className = "node";
-  el.innerHTML = `<div class="box"></div><div class="arrow" aria-hidden="true">←</div>`;
+  el.innerHTML = `<div class="box"></div><div class="arrow" aria-hidden="true">→</div>`;
   el.querySelector(".box").textContent = val;
   el.title = val;
   stage.appendChild(el);
@@ -290,10 +290,9 @@ function layout() {
   const ft = $("frontTag"), bt = $("backTag");
   ft.style.opacity = n ? "1" : "0";
   bt.style.opacity = n ? "1" : "0";
-  if (n) { ft.style.right = rightFor(0) + "px"; bt.style.right = rightFor(n - 1) + "px"; }
+  if (n) { ft.style.left = posFor(0) + "px"; bt.style.left = posFor(n - 1) + "px"; }
   // with one element, front and back are the same node: stack the labels
   bt.style.top = n === 1 ? "162px" : "128px";
-  const sc = stage.parentElement; sc.scrollLeft = sc.scrollWidth;
   $("sizeLabel").textContent = "size " + n;
 }
 
@@ -354,8 +353,8 @@ async function doAdd() {
   await beat();
   const i = queue.length;
   const el = makeNode(v.value);
-  // start just past the back (further left), faded, then slide into place
-  el.style.right = (rightFor(i) + 70) + "px";
+  // start just past the back (further right), faded, then slide into place
+  el.style.left = (posFor(i) + 70) + "px";
   el.style.top = BASE_TOP + "px";
   el.style.opacity = "0";
   el.classList.add("hl-add", "last");
@@ -382,7 +381,7 @@ async function doRemoveFront(method) {
   front.el.classList.add("hl-remove");
   await sleep(300);
   // slide out through the open front end of the tube
-  front.el.style.right = "-80px";
+  front.el.style.left = "-80px";
   front.el.style.opacity = "0";
   say("returns " + front.val, "remove");
   await sleep(MOVE);
