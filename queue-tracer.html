@@ -1,0 +1,635 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>removeEvens Tracer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  /* Layout: version + input controls on top; code and variables on the left, animated queue on the right; trace table full width below */
+  :root {
+    --bg: #f6f6f3;
+    --panel: #ffffff;
+    --border: #d9d8d1;
+    --border-strong: #b5b3a8;
+    --text: #22221f;
+    --text-2: #5b5a53;
+    --muted: #96948a;
+    --accent: #185fa5;
+    --accent-bg: #e3effa;
+    --add: #1d7a4f;
+    --add-bg: #e2f4ea;
+    --remove: #9a5a08;
+    --remove-bg: #fbeedb;
+    --peek: #534ab7;
+    --peek-bg: #edecfd;
+    --danger: #a32d2d;
+    --danger-bg: #fcebeb;
+    --line-bg: #fff4c7;
+    --on-fill: #ffffff;
+    --btn-edge: rgba(0, 0, 0, 0.22);
+    --btn-shadow: rgba(0, 0, 0, 0.10);
+    --font-sans: "IBM Plex Sans", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    --font-mono: "IBM Plex Mono", "SF Mono", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17181a; --panel: #212226; --border: #34363b; --border-strong: #4a4c53;
+      --text: #ecebe6; --text-2: #b4b2aa; --muted: #7d7b74;
+      --accent: #7db6ec; --accent-bg: #1c3045;
+      --add: #6fd2a0; --add-bg: #183528; --remove: #f0b45e; --remove-bg: #3a2a12;
+      --peek: #aea7f5; --peek-bg: #2a2748; --danger: #f08b8b; --danger-bg: #3d1c1c;
+      --line-bg: #3a3418;
+      --on-fill: #15161a; --btn-edge: rgba(0, 0, 0, 0.55); --btn-shadow: rgba(0, 0, 0, 0.35);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17181a; --panel: #212226; --border: #34363b; --border-strong: #4a4c53;
+    --text: #ecebe6; --text-2: #b4b2aa; --muted: #7d7b74;
+    --accent: #7db6ec; --accent-bg: #1c3045;
+    --add: #6fd2a0; --add-bg: #183528; --remove: #f0b45e; --remove-bg: #3a2a12;
+    --peek: #aea7f5; --peek-bg: #2a2748; --danger: #f08b8b; --danger-bg: #3d1c1c;
+    --line-bg: #3a3418;
+    --on-fill: #15161a; --btn-edge: rgba(0, 0, 0, 0.55); --btn-shadow: rgba(0, 0, 0, 0.35);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    padding-inline: 20px;
+    padding-block: 32px 60px;
+  }
+  .wrap { max-width: 1240px; margin: 0 auto; display: grid; gap: 18px; }
+  h1 { font-size: 22px; font-weight: 600; margin: 0; text-wrap: balance; }
+  p.sub { color: var(--text-2); margin: 4px 0 0; font-size: 14px; max-width: 75ch; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+  .group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .lbl { font-family: var(--font-mono); font-size: 13px; color: var(--text-2); }
+  select, input {
+    font-family: inherit; font-size: 14px;
+    border: 1px solid var(--border-strong); border-radius: 6px;
+    background: var(--panel); color: var(--text);
+    padding: 8px 10px;
+  }
+  input#customInput { width: 190px; font-family: var(--font-mono); }
+
+  /* Version picker: segmented control */
+  .seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 8px; overflow: hidden; flex-wrap: wrap; }
+  .seg button {
+    font-family: var(--font-mono); font-size: 13px; font-weight: 500;
+    background: var(--panel); color: var(--text-2);
+    border: none; border-right: 1px solid var(--border); padding: 8px 14px; cursor: pointer;
+  }
+  .seg button:last-child { border-right: none; }
+  .seg button[aria-pressed="true"] { background: var(--accent-bg); color: var(--accent); font-weight: 600; }
+
+  button.pill {
+    cursor: pointer; font-family: var(--font-sans); font-size: 14px; font-weight: 600;
+    border: none; border-radius: 999px;
+    padding: 9px 18px;
+    color: var(--on-fill); background: var(--accent);
+    box-shadow: 0 3px 0 var(--btn-edge), 0 4px 10px var(--btn-shadow);
+    transition: transform 0.08s, box-shadow 0.08s, filter 0.15s;
+  }
+  button.pill:hover:not(:disabled) { filter: brightness(1.08); }
+  button.pill:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 0 0 var(--btn-edge), 0 1px 3px var(--btn-shadow); }
+  button.pill:disabled { opacity: 0.4; cursor: default; }
+  button.pill.quiet {
+    background: var(--panel); color: var(--text); font-weight: 500;
+    box-shadow: inset 0 0 0 1px var(--border-strong), 0 3px 0 var(--btn-edge), 0 4px 10px var(--btn-shadow);
+  }
+  button.pill.quiet:active:not(:disabled) { box-shadow: inset 0 0 0 1px var(--border-strong), 0 0 0 var(--btn-edge); }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  #inputError { color: var(--danger); font-size: 13px; }
+
+  .main { display: grid; grid-template-columns: minmax(0, 500px) minmax(0, 1fr); gap: 18px; align-items: start; }
+  @media (max-width: 980px) { .main { grid-template-columns: minmax(0, 1fr); } }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px; min-width: 0; }
+  .panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .panel-title { font-family: var(--font-mono); font-size: 13px; color: var(--text-2); }
+  .panel-meta { font-size: 12px; color: var(--muted); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+  /* Code listing */
+  .code { overflow-x: auto; }
+  .code pre { margin: 0; font-family: var(--font-mono); font-size: 13.5px; line-height: 1.75; }
+  .ln { display: block; padding: 0 10px 0 0; border-radius: 4px; white-space: pre; transition: background 0.2s; }
+  .ln .no { display: inline-block; width: 2.2em; color: var(--muted); text-align: right; margin-right: 12px; user-select: none; }
+  .ln.cur { background: var(--line-bg); }
+  .ln.cur .no { color: var(--text); font-weight: 600; }
+  .kw { color: var(--peek); }
+  .bound { background: var(--accent-bg); color: var(--accent); border-radius: 3px; padding: 0 2px; font-weight: 600; }
+
+  /* Variables */
+  .vars { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .var {
+    display: grid; gap: 0; min-width: 84px; padding: 6px 12px; border-radius: 6px;
+    border: 1px solid var(--border); font-family: var(--font-mono);
+    transition: background 0.3s, border-color 0.3s;
+  }
+  .var .k { font-size: 11.5px; color: var(--text-2); }
+  .var .v { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .var.isbound { border: 2px solid var(--accent); }
+  .var.isbound .k::after { content: "  \2190 loop bound"; color: var(--accent); }
+  .var.changed { background: var(--line-bg); }
+
+  /* Narration */
+  #msg { font-size: 15px; min-height: 48px; margin: 0 0 6px; }
+  #msg code { font-family: var(--font-mono); font-size: 14px; }
+  .t { color: var(--add); font-weight: 600; }
+  .f { color: var(--danger); font-weight: 600; }
+
+  /* Queue stage: front on the left, back on the right, open-ended tube */
+  .scroller { overflow-x: auto; padding-bottom: 4px; }
+  .stage { position: relative; height: 232px; min-width: 100%; overflow: hidden; }
+  .hand {
+    position: absolute; left: 16px; top: 8px; width: 64px; height: 60px;
+    border: 1.5px dashed var(--border-strong); border-radius: 6px;
+  }
+  .hand-lbl { position: absolute; left: 92px; top: 26px; font-family: var(--font-mono); font-size: 13px; color: var(--text-2); }
+  .tube {
+    position: absolute; left: 0; right: 0; top: 96px; height: 78px;
+    border-top: 3px solid var(--border-strong); border-bottom: 3px solid var(--border-strong);
+    pointer-events: none;
+  }
+  .node {
+    position: absolute; width: 64px; height: 60px; z-index: 2;
+    transition: left 0.45s cubic-bezier(.3,.7,.3,1), top 0.45s cubic-bezier(.3,.7,.3,1), opacity 0.35s;
+  }
+  .node.travel { transition: left 0.45s cubic-bezier(.3,.7,.3,1), top 0.3s cubic-bezier(.3,.7,.3,1) 0.4s, opacity 0.35s; z-index: 3; }
+  .box {
+    width: 64px; height: 60px; border-radius: 6px;
+    border: 1.5px solid var(--border-strong); background: var(--bg); color: var(--text);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-size: 17px; font-weight: 500;
+    transition: background 0.25s, border-color 0.25s, color 0.25s;
+  }
+  .arrow {
+    position: absolute; left: 64px; top: 0; width: 32px; height: 60px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted); font-family: var(--font-mono); font-size: 18px;
+    transition: opacity 0.2s;
+  }
+  .node.noarrow .arrow { opacity: 0; }
+  .node.held .box { background: var(--remove-bg); border-color: var(--remove); color: var(--remove); }
+  .node.odd .box { background: var(--add-bg); border-color: var(--add); color: var(--add); }
+  .node.dropped .box { background: var(--danger-bg); border-color: var(--danger); color: var(--danger); text-decoration: line-through; }
+  .node.done .box { border-color: var(--border-strong); }
+  .node.unchecked .box { border: 2px dashed var(--danger); color: var(--danger); background: var(--danger-bg); }
+  .node .flag {
+    position: absolute; top: 66px; left: -8px; width: 80px; text-align: center;
+    font-size: 11px; font-family: var(--font-mono); color: var(--danger); opacity: 0;
+  }
+  .node.unchecked .flag { opacity: 1; }
+  .tag {
+    position: absolute; top: 182px; width: 64px; text-align: center;
+    font-family: var(--font-mono); font-size: 12px; color: var(--accent);
+    transition: left 0.45s cubic-bezier(.3,.7,.3,1), opacity 0.25s;
+  }
+  .tag::before { content: "\2191"; display: block; line-height: 1; }
+  .empty-note { position: absolute; top: 122px; left: 16px; color: var(--muted); font-style: italic; font-size: 13px; }
+
+  .playback { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 8px; }
+  .playback .spacer { flex: 1; }
+  .kbd { font-size: 12px; color: var(--muted); }
+
+  #verdict { margin-top: 12px; padding: 10px 14px; border-radius: 6px; font-size: 14.5px; border: 1px solid; }
+  #verdict.ok { background: var(--add-bg); border-color: var(--add); color: var(--text); }
+  #verdict.bad { background: var(--danger-bg); border-color: var(--danger); color: var(--text); }
+  #verdict b { font-family: var(--font-mono); }
+
+  /* Trace table */
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-family: var(--font-mono); font-size: 13.5px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { font-weight: 500; color: var(--text-2); font-size: 12.5px; border-bottom: 1.5px solid var(--border-strong); }
+  tr.latest td { background: var(--line-bg); }
+  td.bad { color: var(--danger); font-weight: 600; }
+  td.good { color: var(--add); }
+  .empty-row td { color: var(--muted); font-style: italic; font-family: var(--font-sans); }
+  @media (prefers-reduced-motion: reduce) {
+    .node, .node.travel, .tag { transition-duration: 0.01s; transition-delay: 0s; }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>removeEvens Tracer</h1>
+    <p class="sub">Step through two versions of <code>removeEvens</code>, one that saves the queue's size before the loop and one that does not, and watch what happens to the loop bound as the queue changes size.</p>
+  </header>
+
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Version">
+      <button type="button" data-v="bug" aria-pressed="true">Size not saved: i &lt; q.size()</button>
+      <button type="button" data-v="fixed" aria-pressed="false">Size saved: i &lt; size</button>
+    </div>
+    <div class="group">
+      <label for="presetSelect" class="lbl">q =</label>
+      <select id="presetSelect">
+        <option value="1,2,3,4,5,6">[1, 2, 3, 4, 5, 6]</option>
+        <option value="2,4,6,8">[2, 4, 6, 8]</option>
+        <option value="1,3,5,7">[1, 3, 5, 7]</option>
+        <option value="8,3,4,9,10,7">[8, 3, 4, 9, 10, 7]</option>
+        <option value="custom">Custom…</option>
+      </select>
+      <input id="customInput" type="text" placeholder="e.g. 5, 2, 8, 1" autocomplete="off" hidden>
+      <button id="loadBtn" class="pill quiet" type="button" hidden>Load</button>
+      <span id="inputError" hidden></span>
+    </div>
+  </div>
+
+  <div class="main">
+    <section class="panel" aria-label="Code">
+      <div class="panel-head">
+        <span class="panel-title">Code</span>
+        <span class="panel-meta" id="stepLabel">step 1 / 1</span>
+      </div>
+      <div class="code"><pre id="code"></pre></div>
+      <div class="vars" id="vars"></div>
+    </section>
+
+    <section class="panel" aria-label="Queue">
+      <div class="panel-head">
+        <span class="panel-title">Queue&lt;Integer&gt; q</span>
+        <span class="panel-meta" id="sizeLabel">q.size() = 0</span>
+      </div>
+      <p id="msg" aria-live="polite"></p>
+      <div class="scroller">
+        <div class="stage" id="stage">
+          <div class="hand" aria-hidden="true"></div>
+          <div class="hand-lbl">&larr; int n</div>
+          <div class="tube" aria-hidden="true"></div>
+          <div class="empty-note" id="emptyNote" hidden>(empty)</div>
+          <div class="tag" id="frontTag">front</div>
+          <div class="tag" id="backTag">back</div>
+        </div>
+      </div>
+      <div class="playback">
+        <button id="backBtn" class="pill quiet" type="button">&larr; Back</button>
+        <button id="stepBtn" class="pill" type="button">Step &rarr;</button>
+        <button id="playBtn" class="pill quiet" type="button">Play</button>
+        <button id="resetBtn" class="pill quiet" type="button">Restart</button>
+        <label for="speedSelect" class="lbl">Speed</label>
+        <select id="speedSelect">
+          <option value="1500">Slow</option>
+          <option value="950" selected>Normal</option>
+          <option value="500">Fast</option>
+        </select>
+        <span class="spacer"></span>
+        <span class="kbd">Arrow keys step too</span>
+      </div>
+      <div id="verdict" hidden></div>
+    </section>
+  </div>
+
+  <section class="panel" aria-label="Trace table">
+    <div class="panel-head">
+      <span class="panel-title">Trace table</span>
+      <span class="panel-meta" id="expectLabel"></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead id="thead"></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+/* ---------- the three versions ---------- */
+const VERSIONS = {
+  bug: {
+    lines: [
+      'public static void removeEvens(Queue&lt;Integer&gt; q) {',
+      '    <span class="kw">for</span> (int i = 0; i &lt; <span class="bound">q.size()</span>; i++) {',
+      '        int n = q.remove();',
+      '        <span class="kw">if</span> (n % 2 != 0) {',
+      '            q.add(n);',
+      '        }',
+      '    }',
+      '}'
+    ],
+    L: { start: 0, cond: 1, remove: 2, ifc: 3, add: 4, end: 7 },
+    kind: "for", boundName: "q.size()"
+  },
+  fixed: {
+    lines: [
+      'public static void removeEvens(Queue&lt;Integer&gt; q) {',
+      '    int size = q.size();',
+      '    <span class="kw">for</span> (int i = 0; i &lt; <span class="bound">size</span>; i++) {',
+      '        int n = q.remove();',
+      '        <span class="kw">if</span> (n % 2 != 0) {',
+      '            q.add(n);',
+      '        }',
+      '    }',
+      '}'
+    ],
+    L: { start: 0, save: 1, cond: 2, remove: 3, ifc: 4, add: 5, end: 8 },
+    kind: "for", boundName: "size"
+  },
+  while: {
+    lines: [
+      'public static void removeEvens(Queue&lt;Integer&gt; q) {',
+      '    <span class="kw">while</span> (<span class="bound">!q.isEmpty()</span>) {',
+      '        int n = q.remove();',
+      '        <span class="kw">if</span> (n % 2 != 0) {',
+      '            q.add(n);',
+      '        }',
+      '    }',
+      '}'
+    ],
+    L: { start: 0, cond: 1, remove: 2, ifc: 3, add: 4, end: 7 },
+    kind: "while", boundName: "q.size()"
+  }
+};
+
+const fmt = (arr) => "[" + arr.join(", ") + "]";
+const T = (b) => b ? '<span class="t">true</span>' : '<span class="f">false</span>';
+
+/* ---------- build every step ahead of time, so Back works ---------- */
+function buildSteps(vkey, values) {
+  const V = VERSIONS[vkey], L = V.L;
+  const items = values.map((val, id) => ({ id, val }));
+  let q = items.slice();
+  let held = null;           // { id, val, state: "held" | "odd" | "dropped" }
+  const vars = { i: "—", qsize: q.length, n: "—" };
+  if (vkey === "fixed") vars.size = "—";
+  const rows = [];
+  const processed = new Set();
+  const steps = [];
+  const changed = new Set();
+
+  const snap = (line, msg, extra = {}) => {
+    steps.push({
+      line, msg,
+      q: q.map(x => x.id),
+      held: held ? { ...held } : null,
+      vars: { ...vars },
+      changed: [...changed],
+      rows: rows.map(r => ({ ...r })),
+      ...extra
+    });
+    changed.clear();
+  };
+  const setVar = (k, v) => { if (vars[k] !== v) changed.add(k); vars[k] = v; };
+
+  snap(L.start, `Start: q is <code>${fmt(values)}</code> and <code>q.size()</code> is ${q.length}.`);
+
+  let bound = q.length;
+  if (vkey === "fixed") {
+    setVar("size", q.length);
+    snap(L.save, `Save the size before the loop changes anything: <code>size = ${q.length}</code>. This number will not change.`);
+  }
+
+  let i = 0, passes = 0;
+  const CAP = Math.max(values.length * 3, 12);
+  let endReason = "normal";
+  if (V.kind === "for") setVar("i", 0);
+
+  while (true) {
+    // loop condition
+    let cond, condText;
+    if (vkey === "bug") {
+      bound = q.length; cond = i < bound;
+      condText = `${i} &lt; ${bound}`;
+      snap(L.cond, `${i === 0 ? "" : "<code>i++</code>, so i is " + i + ". "}Check <code>i &lt; q.size()</code> → <code>${condText}</code> → ${T(cond)}`);
+    } else if (vkey === "fixed") {
+      bound = vars.size; cond = i < bound;
+      condText = `${i} &lt; ${bound}`;
+      snap(L.cond, `${i === 0 ? "" : "<code>i++</code>, so i is " + i + ". "}Check <code>i &lt; size</code> → <code>${condText}</code> → ${T(cond)}`);
+    } else {
+      cond = q.length > 0;
+      condText = `!q.isEmpty()`;
+      snap(L.cond, `Check <code>!q.isEmpty()</code>: q has ${q.length} element${q.length === 1 ? "" : "s"} → ${T(cond)}`);
+    }
+
+    if (!cond) {
+      rows.push({ i: V.kind === "for" ? i : passes + 1, check: V.kind === "for" ? `${condText.replace("&lt;", "<")}` : "!q.isEmpty()", ok: false, n: "", action: "loop ends", after: fmt(q.map(x => x.val)) });
+      break;
+    }
+    if (V.kind === "while" && passes >= CAP) { endReason = "capped"; break; }
+
+    // remove the front
+    const front = q.shift();
+    held = { ...front, state: "held" };
+    processed.add(front.id);
+    setVar("n", front.val);
+    setVar("qsize", q.length);
+    snap(L.remove, `<code>q.remove()</code> takes ${front.val} off the front. <code>q.size()</code> drops to ${q.length}.`);
+
+    const odd = front.val % 2 !== 0;
+    if (odd) {
+      held.state = "odd";
+      snap(L.ifc, `<code>${front.val} % 2 != 0</code> → ${T(true)}, so ${front.val} is odd and gets added back.`);
+      q.push(front);
+      held = null;
+      setVar("qsize", q.length);
+      snap(L.add, `<code>q.add(${front.val})</code> puts it at the back. <code>q.size()</code> is back up to ${q.length}.`, { travelId: front.id });
+    } else {
+      held.state = "dropped";
+      snap(L.ifc, `<code>${front.val} % 2 != 0</code> → ${T(false)}, so ${front.val} is even. It is never added back, and <code>q.size()</code> stays at ${q.length}.`);
+      held = null;
+    }
+    rows.push({
+      i: V.kind === "for" ? i : passes + 1,
+      check: V.kind === "for" ? `${condText.replace("&lt;", "<")}` : "!q.isEmpty()",
+      ok: true, n: front.val, action: odd ? "added back" : "removed",
+      after: fmt(q.map(x => x.val))
+    });
+    passes++;
+    if (V.kind === "for") { i++; setVar("i", i); }
+  }
+
+  // verdict
+  const result = q.map(x => x.val);
+  const expected = values.filter(v => v % 2 !== 0);
+  const unchecked = q.filter(x => !processed.has(x.id)).map(x => x.id);
+  const correct = endReason === "normal" && fmt(result) === fmt(expected);
+  let verdict;
+  if (endReason === "capped") {
+    verdict = `<b>This loop never ends.</b> Odd numbers keep going back into q, so q is never empty. Stopped after ${passes} passes. The queue keeps cycling through <b>${fmt(result)}</b>.`;
+  } else if (correct && vkey === "bug" && expected.length === values.length) {
+    verdict = `<b>Correct this time: ${fmt(result)}.</b> Every number was odd, so nothing left the queue for good and <code>q.size()</code> never changed. The bug only shows up when an element is removed and not added back.`;
+  } else if (correct && vkey === "fixed") {
+    verdict = `<b>Correct: ${fmt(result)}.</b> <code>size</code> stayed ${values.length} the whole time, so the loop ran exactly ${values.length} times, once for each original element.`;
+  } else if (correct && vkey === "while") {
+    verdict = `<b>Correct this time: ${fmt(result)}.</b> Every number was even, so nothing went back in and q emptied out. With even one odd number, this loop would never end.`;
+  } else if (correct) {
+    verdict = `<b>Correct: ${fmt(result)}.</b>`;
+  } else {
+    const missed = q.filter(x => !processed.has(x.id)).map(x => x.val);
+    verdict = `<b>Expected ${fmt(expected)} but q is ${fmt(result)}.</b> The loop stopped after ${passes} of ${values.length} elements because <code>q.size()</code> shrank from ${values.length} to ${result.length} while i grew to ${i}.`
+      + (missed.length ? ` ${missed.length === 1 ? "This element was" : "These elements were"} never checked: <b>${fmt(missed)}</b>.` : "")
+      + (missed.length && result.length > missed.length ? ` The order is also scrambled, because the odd numbers that were checked moved behind the ones that were not.` : "");
+  }
+  held = null;
+  const endMsg = endReason === "capped"
+    ? `Still running after ${passes} passes. This would go on forever.`
+    : `The loop ends. q is now <code>${fmt(result)}</code>.`;
+  snap(L.end, endMsg, { final: true, unchecked, verdict, verdictOk: correct });
+  return { steps, items, expected };
+}
+
+/* ---------- state ---------- */
+let vkey = "bug";
+let values = [1, 2, 3, 4, 5, 6];
+let built = null;
+let cur = 0;
+let timer = null;
+const nodes = new Map();
+const stage = $("stage");
+
+const PAD = 16, STEP = 96, BOX_TOP = 105, HAND_TOP = 8;
+
+function load() {
+  stopPlay();
+  built = buildSteps(vkey, values);
+  // code
+  $("code").innerHTML = VERSIONS[vkey].lines.map((h, k) => `<span class="ln" data-k="${k}"><span class="no">${k + 1}</span>${h}</span>`).join("");
+  // nodes
+  nodes.forEach(n => n.remove()); nodes.clear();
+  built.items.forEach(item => {
+    const el = document.createElement("div");
+    el.className = "node";
+    el.innerHTML = `<div class="box"></div><div class="arrow" aria-hidden="true">→</div><div class="flag">never checked</div>`;
+    el.querySelector(".box").textContent = item.val;
+    stage.appendChild(el);
+    nodes.set(item.id, el);
+  });
+  stage.style.width = Math.max(PAD * 2 + values.length * STEP, 320) + "px";
+  // table head
+  const first = VERSIONS[vkey].kind === "for" ? "i" : "pass";
+  const check = vkey === "bug" ? "i < q.size()" : vkey === "fixed" ? "i < size" : "!q.isEmpty()";
+  $("thead").innerHTML = `<tr><th>${first}</th><th>${check}</th><th>n</th><th>n % 2 != 0</th><th>q after</th></tr>`;
+  $("expectLabel").textContent = "expected result: " + fmt(built.expected);
+  cur = 0;
+  render(null);
+}
+
+function render(prev) {
+  const s = built.steps[cur];
+  // code line
+  document.querySelectorAll(".ln").forEach(el => el.classList.toggle("cur", Number(el.dataset.k) === s.line));
+  // vars
+  const order = vkey === "fixed" ? ["i", "size", "qsize", "n"] : vkey === "while" ? ["qsize", "n"] : ["i", "qsize", "n"];
+  const label = { i: "i", size: "size", qsize: "q.size()", n: "n" };
+  const boundKey = vkey === "fixed" ? "size" : vkey === "bug" ? "qsize" : null;
+  $("vars").innerHTML = order.map(k => `<div class="var${k === boundKey ? " isbound" : ""}${s.changed.includes(k) ? " changed" : ""}"><span class="k">${label[k]}</span><span class="v">${s.vars[k]}</span></div>`).join("");
+  // message
+  $("msg").innerHTML = s.msg;
+  $("sizeLabel").textContent = "q.size() = " + s.q.length;
+  $("stepLabel").textContent = `step ${cur + 1} / ${built.steps.length}`;
+  // queue nodes
+  const inQ = new Map(s.q.map((id, k) => [id, k]));
+  nodes.forEach((el, id) => {
+    el.classList.remove("held", "odd", "dropped", "unchecked", "noarrow", "travel");
+    if (inQ.has(id)) {
+      const k = inQ.get(id);
+      if (s.travelId === id && prev && prev.held && prev.held.id === id) el.classList.add("travel");
+      el.style.left = (PAD + k * STEP) + "px";
+      el.style.top = BOX_TOP + "px";
+      el.style.opacity = "1";
+      if (k === s.q.length - 1) el.classList.add("noarrow");
+      if (s.final && s.unchecked.includes(id)) el.classList.add("unchecked");
+      if (s.travelId === id) el.classList.add("odd");
+    } else if (s.held && s.held.id === id) {
+      el.style.left = PAD + "px";
+      el.style.top = HAND_TOP + "px";
+      el.style.opacity = "1";
+      el.classList.add("noarrow", s.held.state);
+    } else {
+      el.classList.add("noarrow");
+      el.style.opacity = "0";
+      if (!el.style.left) { el.style.left = PAD + "px"; el.style.top = HAND_TOP + "px"; }
+    }
+  });
+  // tags
+  const n = s.q.length;
+  $("emptyNote").hidden = n > 0;
+  $("frontTag").style.opacity = n ? "1" : "0";
+  $("backTag").style.opacity = n ? "1" : "0";
+  if (n) { $("frontTag").style.left = PAD + "px"; $("backTag").style.left = (PAD + (n - 1) * STEP) + "px"; }
+  $("backTag").style.top = n === 1 ? "212px" : "182px";
+  // trace table
+  if (s.rows.length === 0) {
+    $("tbody").innerHTML = `<tr class="empty-row"><td colspan="5">Rows appear here as the loop runs.</td></tr>`;
+  } else {
+    $("tbody").innerHTML = s.rows.map((r, k) => `
+      <tr class="${k === s.rows.length - 1 ? "latest" : ""}">
+        <td>${r.i}</td>
+        <td class="${r.ok ? "good" : "bad"}">${r.check.replace("<", "&lt;")} → ${r.ok}</td>
+        <td>${r.n}</td>
+        <td>${r.n === "" ? r.action : (r.action === "added back" ? "true, added back" : "false, removed")}</td>
+        <td>${r.after}</td>
+      </tr>`).join("");
+  }
+  // verdict
+  const v = $("verdict");
+  if (s.final) { v.hidden = false; v.className = s.verdictOk ? "ok" : "bad"; v.innerHTML = s.verdict; }
+  else v.hidden = true;
+  // buttons
+  $("backBtn").disabled = cur === 0;
+  $("stepBtn").disabled = cur === built.steps.length - 1;
+}
+
+function go(delta) {
+  const next = cur + delta;
+  if (next < 0 || next >= built.steps.length) return false;
+  const prev = built.steps[cur];
+  cur = next;
+  render(delta > 0 ? prev : null);
+  return true;
+}
+
+function stopPlay() { if (timer) { clearInterval(timer); timer = null; } $("playBtn").textContent = "Play"; }
+function startPlay() {
+  if (cur === built.steps.length - 1) { cur = 0; render(null); }
+  $("playBtn").textContent = "Pause";
+  timer = setInterval(() => { if (!go(1)) stopPlay(); }, Number($("speedSelect").value));
+}
+
+$("stepBtn").addEventListener("click", () => { stopPlay(); go(1); });
+$("backBtn").addEventListener("click", () => { stopPlay(); go(-1); });
+$("playBtn").addEventListener("click", () => timer ? stopPlay() : startPlay());
+$("resetBtn").addEventListener("click", () => { stopPlay(); cur = 0; render(null); });
+$("speedSelect").addEventListener("change", () => { if (timer) { stopPlay(); startPlay(); } });
+document.addEventListener("keydown", (e) => {
+  if (e.target.matches("input, select")) return;
+  if (e.key === "ArrowRight") { stopPlay(); go(1); e.preventDefault(); }
+  if (e.key === "ArrowLeft") { stopPlay(); go(-1); e.preventDefault(); }
+});
+
+document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".seg button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  vkey = b.dataset.v;
+  load();
+}));
+
+function showErr(m) { $("inputError").textContent = m; $("inputError").hidden = !m; }
+$("presetSelect").addEventListener("change", (e) => {
+  const custom = e.target.value === "custom";
+  $("customInput").hidden = !custom; $("loadBtn").hidden = !custom;
+  showErr("");
+  if (!custom) { values = e.target.value.split(",").map(Number); load(); }
+  else $("customInput").focus();
+});
+function loadCustom() {
+  const parts = $("customInput").value.split(/[\s,]+/).filter(Boolean);
+  if (parts.length === 0) return showErr("Enter some whole numbers, separated by commas.");
+  if (parts.length > 10) return showErr("Use 10 numbers or fewer so the queue fits.");
+  if (!parts.every(p => /^-?\d{1,4}$/.test(p))) return showErr("Use whole numbers up to 4 digits.");
+  showErr("");
+  values = parts.map(Number);
+  load();
+}
+$("loadBtn").addEventListener("click", loadCustom);
+$("customInput").addEventListener("keydown", (e) => { if (e.key === "Enter") loadCustom(); });
+
+load();
+</script>
+
+</body></html>
