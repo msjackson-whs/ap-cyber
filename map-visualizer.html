@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Map Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  /* Layout: controls on top; a keys bubble and a values bubble side by side with a line from each key to its value; call log on the right */
+  :root {
+    --bg: #f6f6f3;
+    --panel: #ffffff;
+    --border: #d9d8d1;
+    --border-strong: #b5b3a8;
+    --text: #22221f;
+    --text-2: #5b5a53;
+    --muted: #96948a;
+    --line: #a3a197;
+    --accent: #185fa5;
+    --accent-bg: #e3effa;
+    --add: #1d7a4f;
+    --add-bg: #e2f4ea;
+    --remove: #9a5a08;
+    --remove-bg: #fbeedb;
+    --peek: #534ab7;
+    --peek-bg: #edecfd;
+    --danger: #a32d2d;
+    --kb-a: rgba(83, 74, 183, 0.11);
+    --kb-b: rgba(83, 74, 183, 0.05);
+    --kb-edge: rgba(83, 74, 183, 0.28);
+    --vb-a: rgba(24, 95, 165, 0.10);
+    --vb-b: rgba(24, 95, 165, 0.05);
+    --vb-edge: rgba(24, 95, 165, 0.26);
+    --orb: #ffffff;
+    --val-bg: #fbfbf9;
+    --on-fill: #ffffff;
+    --btn-edge: rgba(0, 0, 0, 0.22);
+    --btn-shadow: rgba(0, 0, 0, 0.10);
+    --font-sans: "IBM Plex Sans", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    --font-mono: "IBM Plex Mono", "SF Mono", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17181a; --panel: #212226; --border: #34363b; --border-strong: #4a4c53;
+      --text: #ecebe6; --text-2: #b4b2aa; --muted: #7d7b74; --line: #6c6e75;
+      --accent: #7db6ec; --accent-bg: #1c3045;
+      --add: #6fd2a0; --add-bg: #183528; --remove: #f0b45e; --remove-bg: #3a2a12;
+      --peek: #aea7f5; --peek-bg: #2a2748; --danger: #f08b8b;
+      --kb-a: rgba(174, 167, 245, 0.13); --kb-b: rgba(174, 167, 245, 0.05); --kb-edge: rgba(174, 167, 245, 0.30);
+      --vb-a: rgba(125, 182, 236, 0.12); --vb-b: rgba(125, 182, 236, 0.05); --vb-edge: rgba(125, 182, 236, 0.28);
+      --orb: #2a2b30; --val-bg: #26272b;
+      --on-fill: #15161a; --btn-edge: rgba(0, 0, 0, 0.55); --btn-shadow: rgba(0, 0, 0, 0.35);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17181a; --panel: #212226; --border: #34363b; --border-strong: #4a4c53;
+    --text: #ecebe6; --text-2: #b4b2aa; --muted: #7d7b74; --line: #6c6e75;
+    --accent: #7db6ec; --accent-bg: #1c3045;
+    --add: #6fd2a0; --add-bg: #183528; --remove: #f0b45e; --remove-bg: #3a2a12;
+    --peek: #aea7f5; --peek-bg: #2a2748; --danger: #f08b8b;
+    --kb-a: rgba(174, 167, 245, 0.13); --kb-b: rgba(174, 167, 245, 0.05); --kb-edge: rgba(174, 167, 245, 0.30);
+    --vb-a: rgba(125, 182, 236, 0.12); --vb-b: rgba(125, 182, 236, 0.05); --vb-edge: rgba(125, 182, 236, 0.28);
+    --orb: #2a2b30; --val-bg: #26272b;
+    --on-fill: #15161a; --btn-edge: rgba(0, 0, 0, 0.55); --btn-shadow: rgba(0, 0, 0, 0.35);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    padding-left: max(20px, env(safe-area-inset-left, 0px));
+    padding-right: max(20px, env(safe-area-inset-right, 0px));
+    padding-block: 32px 60px;
+  }
+  .wrap { max-width: 1240px; margin: 0 auto; display: grid; gap: 20px; }
+  h1 { font-size: 22px; font-weight: 600; margin: 0; text-wrap: balance; }
+  p.sub { color: var(--text-2); margin: 4px 0 0; font-size: 14px; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 10px 8px; align-items: center; }
+  .group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .divider { width: 1px; align-self: stretch; background: var(--border); margin: 0 4px; }
+  .lbl { font-family: var(--font-mono); font-size: 13px; color: var(--text-2); }
+  select, input {
+    font-family: inherit; font-size: 14px;
+    border: 1px solid var(--border-strong); border-radius: 6px;
+    background: var(--panel); color: var(--text);
+    padding: 8px 10px;
+  }
+  input.val { width: 110px; font-family: var(--font-mono); }
+  button {
+    cursor: pointer; font-family: var(--font-mono); font-size: 13.5px; font-weight: 600;
+    border: none; border-radius: 999px;
+    padding: 9px 18px;
+    color: var(--on-fill);
+    box-shadow: 0 3px 0 var(--btn-edge), 0 4px 10px var(--btn-shadow);
+    transition: transform 0.08s, box-shadow 0.08s, filter 0.15s;
+  }
+  button:hover:not(:disabled) { filter: brightness(1.08); }
+  button:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 0 0 var(--btn-edge), 0 1px 3px var(--btn-shadow); }
+  button:disabled, select:disabled, input:disabled { opacity: 0.45; cursor: default; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  button.b-add { background: var(--add); }
+  button.b-remove { background: var(--remove); }
+  button.b-peek { background: var(--peek); }
+  button.b-query { background: var(--accent); }
+  button.b-reset {
+    font-family: var(--font-sans); font-weight: 500;
+    background: var(--panel); color: var(--text);
+    box-shadow: inset 0 0 0 1px var(--border-strong), 0 3px 0 var(--btn-edge), 0 4px 10px var(--btn-shadow);
+  }
+  button.b-reset:active:not(:disabled) { box-shadow: inset 0 0 0 1px var(--border-strong), 0 0 0 var(--btn-edge); }
+  #inputError { color: var(--danger); font-size: 13px; }
+
+  .main { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; }
+  @media (max-width: 1060px) { .main { grid-template-columns: minmax(0, 1fr); } }
+
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px; min-width: 0; }
+  .panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .panel-title { font-family: var(--font-mono); font-size: 13px; color: var(--text-2); }
+  .panel-meta { font-size: 12px; color: var(--muted); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+  #floater { font-family: var(--font-mono); font-size: 15px; font-weight: 500; min-height: 24px; margin: 4px 0 0; padding-left: 4px; }
+  #floater.c-add { color: var(--add); }
+  #floater.c-remove { color: var(--remove); }
+  #floater.c-peek { color: var(--peek); }
+  #floater.c-query { color: var(--accent); }
+
+  /* Two soft bubbles, keys and values, with an SVG layer on top for the lines */
+  .stage { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 64px; padding: 14px 6px 4px; }
+  @media (max-width: 560px) { .stage { grid-template-columns: 1fr; gap: 40px; } }
+  .side { display: grid; gap: 6px; min-width: 0; }
+  .cap { text-align: center; font-family: var(--font-mono); font-size: 12px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+  .bubble {
+    position: relative; height: 320px; width: 100%;
+    border-radius: 46% 54% 52% 48% / 55% 45% 55% 45%;
+    animation: morph 14s ease-in-out infinite alternate;
+  }
+  #kb {
+    background: radial-gradient(ellipse at 40% 38%, var(--kb-a), transparent 68%), radial-gradient(ellipse at 50% 50%, var(--kb-b), transparent 80%);
+    box-shadow: inset 0 0 0 1.5px var(--kb-edge), inset 0 0 40px var(--kb-a);
+  }
+  #vb {
+    background: radial-gradient(ellipse at 60% 40%, var(--vb-a), transparent 68%), radial-gradient(ellipse at 50% 50%, var(--vb-b), transparent 80%);
+    box-shadow: inset 0 0 0 1.5px var(--vb-edge), inset 0 0 40px var(--vb-a);
+    animation-delay: -7s;
+  }
+  @keyframes morph {
+    0%   { border-radius: 46% 54% 52% 48% / 55% 45% 55% 45%; }
+    50%  { border-radius: 54% 46% 44% 56% / 47% 55% 45% 53%; }
+    100% { border-radius: 49% 51% 57% 43% / 52% 48% 52% 48%; }
+  }
+  .bubble.wobble { animation: morph 14s ease-in-out infinite alternate, wobble 0.45s; }
+  @keyframes wobble { 30% { transform: scale(1.015, 0.99); } 65% { transform: scale(0.99, 1.012); } }
+  .empty-note {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    color: var(--muted); font-style: italic; font-size: 13px; white-space: nowrap;
+  }
+
+  #lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 2; }
+  .ln { stroke: var(--line); stroke-width: 1.75; fill: none; stroke-linecap: round; }
+  .ln.add { stroke: var(--add); stroke-width: 2.5; }
+  .ln.remove { stroke: var(--remove); stroke-width: 2.5; }
+  .ln.peek { stroke: var(--peek); stroke-width: 2.5; }
+  .ln.query { stroke: var(--accent); }
+
+  .item {
+    position: absolute; transform: translate(-50%, -50%) scale(1); z-index: 3;
+    transition: transform 0.45s cubic-bezier(.3,1.4,.5,1), opacity 0.45s;
+  }
+  .item.enter { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+  .item.leave { transform: translate(-50%, -50%) scale(0.2); opacity: 0; transition: transform 0.5s ease-in, opacity 0.5s ease-in; }
+  .orb {
+    min-width: 50px; height: 46px; padding: 0 14px; border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--orb); color: var(--text);
+    border: 1.5px solid var(--border-strong);
+    font-family: var(--font-mono); font-size: 15px; font-weight: 600; white-space: nowrap;
+    box-shadow: 0 2px 8px var(--btn-shadow);
+    animation: drift var(--dur, 5s) ease-in-out var(--delay, 0s) infinite alternate;
+    transition: background 0.25s, border-color 0.25s, color 0.25s, box-shadow 0.25s;
+  }
+  .item.vitem .orb { font-weight: 400; background: var(--val-bg); color: var(--text-2); }
+  @keyframes drift {
+    0%   { transform: translate(0, 0); }
+    50%  { transform: translate(var(--dx, 2px), var(--dy, -4px)); }
+    100% { transform: translate(calc(var(--dx, 2px) * -1), 1px); }
+  }
+  .item.hl-add .orb { background: var(--add-bg); border-color: var(--add); color: var(--add); box-shadow: 0 0 0 6px var(--add-bg); }
+  .item.hl-remove .orb { background: var(--remove-bg); border-color: var(--remove); color: var(--remove); box-shadow: 0 0 0 6px var(--remove-bg); }
+  .item.hl-peek .orb { background: var(--peek-bg); border-color: var(--peek); color: var(--peek); box-shadow: 0 0 0 6px var(--peek-bg); font-weight: 600; }
+  .item.hl-query .orb { border-color: var(--accent); color: var(--accent); }
+
+  .printout {
+    margin-top: 12px; padding: 10px 12px; border-radius: 6px; background: var(--bg);
+    font-family: var(--font-mono); font-size: 13px; overflow-wrap: anywhere;
+  }
+  .printout .pcode { color: var(--text-2); }
+  .printout .pout { color: var(--text); font-weight: 500; }
+  .key { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; font-size: 12px; color: var(--muted); }
+
+  /* Call log */
+  #log { display: flex; flex-direction: column; gap: 6px; max-height: 620px; overflow-y: auto; }
+  .entry {
+    display: grid; grid-template-columns: 2.2em minmax(0, 1fr); gap: 2px 8px;
+    padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border);
+    font-family: var(--font-mono); font-size: 13px;
+  }
+  .entry.latest { border-color: var(--border-strong); background: var(--bg); }
+  .num { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .code { overflow-wrap: anywhere; }
+  .m-add { color: var(--add); } .m-remove { color: var(--remove); }
+  .m-peek { color: var(--peek); } .m-query { color: var(--accent); }
+  .ret, .snapshot, .note { grid-column: 2; overflow-wrap: anywhere; }
+  .ret { color: var(--text-2); font-size: 12.5px; }
+  .ret b { font-weight: 600; color: var(--text); }
+  .note { color: var(--text-2); font-size: 12px; }
+  .snapshot { color: var(--muted); font-size: 12px; }
+  .log-empty { color: var(--muted); font-style: italic; font-size: 13px; }
+  @media (prefers-reduced-motion: reduce) {
+    .bubble, .bubble.wobble, .orb { animation: none; }
+    .item, .item.leave { transition-duration: 0.01s; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Java Map Visualizer</h1>
+    <p class="sub">Call put, get, remove, containsKey, containsValue, isEmpty, and size on a Map. Every key has exactly one line to its value. Two keys can point to equal values, but a key never appears twice.</p>
+  </header>
+
+  <div class="controls">
+    <div class="group">
+      <label for="implSelect" class="lbl">Map</label>
+      <select id="implSelect">
+        <option value="HashMap">HashMap</option>
+        <option value="TreeMap">TreeMap</option>
+      </select>
+      <label for="typeSelect" class="lbl">Types</label>
+      <select id="typeSelect">
+        <option value="SI">&lt;String, Integer&gt;</option>
+        <option value="IS">&lt;Integer, String&gt;</option>
+        <option value="SS">&lt;String, String&gt;</option>
+      </select>
+    </div>
+    <div class="divider"></div>
+    <div class="group">
+      <label for="keyInput" class="lbl">key =</label>
+      <input id="keyInput" class="val" type="text" autocomplete="off">
+      <label for="valInput" class="lbl">value =</label>
+      <input id="valInput" class="val" type="text" autocomplete="off">
+      <button id="btnPut" class="b-add" type="button">put(key, value)</button>
+    </div>
+    <div class="divider"></div>
+    <div class="group">
+      <button id="btnGet" class="b-peek" type="button">get(key)</button>
+      <button id="btnContains" class="b-peek" type="button">containsKey(key)</button>
+      <button id="btnContainsV" class="b-peek" type="button">containsValue(value)</button>
+      <button id="btnRemove" class="b-remove" type="button">remove(key)</button>
+    </div>
+    <div class="divider"></div>
+    <div class="group">
+      <button id="btnEmpty" class="b-query" type="button">isEmpty()</button>
+      <button id="btnSize" class="b-query" type="button">size()</button>
+    </div>
+    <div class="divider"></div>
+    <button id="btnReset" class="b-reset" type="button">Reset</button>
+    <span id="inputError" hidden></span>
+  </div>
+
+  <div class="main">
+    <section class="panel" aria-label="Map contents">
+      <div class="panel-head">
+        <span class="panel-title" id="declLabel"></span>
+        <span class="panel-meta" id="sizeLabel">size 0</span>
+      </div>
+      <div id="floater" aria-live="polite"></div>
+      <div class="stage" id="stage">
+        <div class="side">
+          <div class="bubble" id="kb"><div class="empty-note" id="kEmpty">(no keys)</div></div>
+          <div class="cap">keys</div>
+        </div>
+        <div class="side">
+          <div class="bubble" id="vb"><div class="empty-note" id="vEmpty">(no values)</div></div>
+          <div class="cap">values</div>
+        </div>
+        <svg id="lines" aria-hidden="true">
+          <defs>
+            <marker id="mk-def" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--line)"/></marker>
+            <marker id="mk-add" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--add)"/></marker>
+            <marker id="mk-remove" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--remove)"/></marker>
+            <marker id="mk-peek" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--peek)"/></marker>
+            <marker id="mk-query" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--accent)"/></marker>
+          </defs>
+        </svg>
+      </div>
+      <div class="printout">
+        <span class="pcode">System.out.println(m);</span><br>
+        <span class="pout" id="printOut">{}</span>
+      </div>
+      <div class="key" id="keyText"></div>
+    </section>
+
+    <section class="panel" aria-label="Call history">
+      <div class="panel-head">
+        <span class="panel-title">Calls (newest first)</span>
+        <span class="panel-meta" id="callCount">0 calls</span>
+      </div>
+      <div id="log"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const stage = $("stage"), kb = $("kb"), vb = $("vb"), svg = $("lines"), floater = $("floater"), logEl = $("log");
+const controls = ["btnPut", "btnGet", "btnContains", "btnContainsV", "btnRemove", "btnEmpty", "btnSize", "btnReset", "typeSelect", "implSelect", "keyInput", "valInput"].map($);
+const SVGNS = "http://www.w3.org/2000/svg";
+
+// Starter pairs for each type choice. Some values repeat on purpose: values may repeat, keys may not.
+const TYPES = {
+  SI: { k: "String", v: "Integer", sug: [["apple", 3], ["pear", 7], ["plum", 3], ["fig", 5], ["kiwi", 1], ["lime", 7], ["date", 2], ["guava", 4], ["mango", 6], ["peach", 3], ["lemon", 8], ["grape", 5]] },
+  IS: { k: "Integer", v: "String", sug: [[101, "Ava"], [205, "Ben"], [150, "Cleo"], [312, "Dev"], [178, "Ava"], [240, "Fay"], [119, "Gus"], [333, "Hana"], [264, "Ben"], [187, "Jon"], [402, "Kai"], [226, "Lena"]] },
+  SS: { k: "String", v: "String", sug: [["WA", "Olympia"], ["OR", "Salem"], ["CA", "Sacramento"], ["ID", "Boise"], ["NY", "Albany"], ["TX", "Austin"], ["MA", "Boston"], ["CO", "Denver"], ["UT", "Salt Lake City"], ["NV", "Carson City"], ["AZ", "Phoenix"], ["MT", "Helena"]] }
+};
+
+let tkey = "SI";
+let impl = "HashMap";
+// entries: { k, v, seq, kItem, vItem, kPos, vPos, line, p0, p1, t0, dur }
+//   k and v are { raw, lit }; kPos and vPos are { x, y, w, h } with x, y in % of their bubble
+let entries = [];
+let seq = 0;
+let capacity = 16;   // tracked only so the printed HashMap order matches real Java
+let log = [];
+let busy = false;
+let suggestIdx = 0;
+
+const T = () => TYPES[tkey];
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+const reflow = (el) => void el.offsetWidth;
+function setBusy(b) { busy = b; controls.forEach(el => el.disabled = b); }
+function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+/* ---------- printed order (computed silently, never drawn) ---------- */
+function javaHash(raw, t) {
+  let h;
+  if (t === "Integer") h = Number(raw) | 0;
+  else { h = 0; for (let i = 0; i < raw.length; i++) h = (Math.imul(31, h) + raw.charCodeAt(i)) | 0; }
+  return (h ^ (h >>> 16)) | 0;
+}
+function compareRaw(a, b, t) {
+  if (t === "Integer") return Number(a) - Number(b);
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+function iterOrder() {
+  const t = T().k, copy = entries.slice();
+  if (impl === "TreeMap") return copy.sort((a, b) => compareRaw(a.k.raw, b.k.raw, t));
+  const b = (e) => javaHash(e.k.raw, t) & (capacity - 1);
+  return copy.sort((x, y) => (b(x) - b(y)) || (x.seq - y.seq));
+}
+// Java prints Strings without quotes: {apple=3, pear=7}
+function printStr() { return "{" + iterOrder().map(e => e.k.raw + "=" + e.v.raw).join(", ") + "}"; }
+
+/* ---------- placement: a free spot inside a bubble ---------- */
+// prefY (in %) nudges a value toward the height of its key so lines cross less
+function findSpot(bub, others, w, h, prefY) {
+  const W = bub.clientWidth || 300, H = bub.clientHeight || 320;
+  let gx = 16, gy = 12, reach = 0.78, spreadY = 0.22;
+  for (let round = 0; round < 8; round++) {
+    for (let tries = 0; tries < 150; tries++) {
+      let px, py;
+      const rx = W / 2 - w / 2 - 14, ry = H / 2 - h / 2 - 14;
+      if (prefY != null && round < 5) {
+        py = prefY / 100 * H + (Math.random() - 0.5) * 2 * spreadY * H;
+        const ny = (py - H / 2) / ry;
+        if (Math.abs(ny) > reach) continue;
+        const span = Math.sqrt(Math.max(0, reach * reach - ny * ny));
+        px = W / 2 + (Math.random() * 2 - 1) * span * rx;
+      } else {
+        const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * reach;
+        px = W / 2 + Math.cos(a) * r * rx;
+        py = H / 2 + Math.sin(a) * r * ry;
+      }
+      const clear = others.every(o => {
+        const ox = o.x / 100 * W, oy = o.y / 100 * H;
+        return Math.abs(ox - px) >= (o.w + w) / 2 + gx || Math.abs(oy - py) >= (o.h + h) / 2 + gy;
+      });
+      if (clear) return { x: px / W * 100, y: py / H * 100 };
+    }
+    gx *= 0.65; gy *= 0.65; reach = Math.min(reach + 0.04, 0.95); spreadY += 0.1;
+  }
+  return { x: 50 + (Math.random() - 0.5) * 50, y: 50 + (Math.random() - 0.5) * 50 };
+}
+function makeOrb(bub, text, isVal) {
+  const el = document.createElement("div");
+  el.className = "item enter" + (isVal ? " vitem" : "");
+  el.innerHTML = `<div class="orb"></div>`;
+  const orb = el.firstChild;
+  orb.textContent = text;
+  orb.style.setProperty("--dur", (8 + Math.random() * 4).toFixed(2) + "s");
+  orb.style.setProperty("--delay", (-Math.random() * 10).toFixed(2) + "s");
+  orb.style.setProperty("--dx", ((Math.random() - 0.5) * 2.5).toFixed(1) + "px");
+  orb.style.setProperty("--dy", (-0.8 - Math.random() * 1.2).toFixed(1) + "px");
+  el.style.visibility = "hidden";
+  bub.appendChild(el);
+  return el;
+}
+// Put an orb into a bubble at a free spot and pop it in
+function placeOrb(bub, el, others, prefY) {
+  const w = el.offsetWidth, h = el.offsetHeight;
+  const s = findSpot(bub, others, w, h, prefY);
+  el.style.left = s.x + "%"; el.style.top = s.y + "%";
+  el.style.visibility = "";
+  reflow(el);
+  el.classList.remove("enter");
+  return { x: s.x, y: s.y, w, h };
+}
+const keyPositions = (skip) => entries.filter(e => e !== skip).map(e => e.kPos);
+const valPositions = (skip) => entries.filter(e => e !== skip && e.vPos).map(e => e.vPos);
+
+/* ---------- lines: redrawn every frame so they follow the drifting orbs ---------- */
+function makeLine() {
+  const l = document.createElementNS(SVGNS, "line");
+  svg.appendChild(l);
+  return l;
+}
+function setLineState(e, state) {
+  e.line.setAttribute("class", "ln" + (state ? " " + state : ""));
+  e.line.setAttribute("marker-end", `url(#mk-${state || "def"})`);
+}
+function animLine(e, to, dur) {
+  e.p0 = lineProgress(e, performance.now()); e.p1 = to; e.t0 = performance.now(); e.dur = dur;
+  return sleep(dur);
+}
+function lineProgress(e, now) {
+  if (!e.dur) return e.p1;
+  let t = Math.min(1, Math.max(0, (now - e.t0) / e.dur));
+  t = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+  return e.p0 + (e.p1 - e.p0) * t;
+}
+// Where a ray from the center of a w x h box, heading (dx, dy), leaves the box
+function edge(cx, cy, hw, hh, dx, dy) {
+  const ax = Math.abs(dx), ay = Math.abs(dy);
+  const t = Math.min(ax ? hw / ax : Infinity, ay ? hh / ay : Infinity);
+  return [cx + dx * t, cy + dy * t];
+}
+function tick(now) {
+  const sr = stage.getBoundingClientRect();
+  for (const e of entries) {
+    if (!e.line || !e.vItem) continue;
+    const kr = e.kItem.firstChild.getBoundingClientRect(), vr = e.vItem.firstChild.getBoundingClientRect();
+    const kx = kr.left + kr.width / 2 - sr.left, ky = kr.top + kr.height / 2 - sr.top;
+    const vx = vr.left + vr.width / 2 - sr.left, vy = vr.top + vr.height / 2 - sr.top;
+    const dx = vx - kx, dy = vy - ky, len = Math.hypot(dx, dy);
+    if (len < 1) continue;
+    const ux = dx / len, uy = dy / len;
+    let [sx, sy] = edge(kx, ky, kr.width / 2, kr.height / 2, dx, dy);
+    let [tx, ty] = edge(vx, vy, vr.width / 2, vr.height / 2, -dx, -dy);
+    sx += ux * 3; sy += uy * 3; tx -= ux * 4; ty -= uy * 4;
+    const p = lineProgress(e, now);
+    e.line.setAttribute("x1", sx.toFixed(1)); e.line.setAttribute("y1", sy.toFixed(1));
+    e.line.setAttribute("x2", (sx + (tx - sx) * p).toFixed(1)); e.line.setAttribute("y2", (sy + (ty - sy) * p).toFixed(1));
+    e.line.style.opacity = p < 0.04 ? "0" : "1";
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ---------- page state ---------- */
+function refresh() {
+  $("kEmpty").hidden = entries.length > 0;
+  $("vEmpty").hidden = entries.length > 0;
+  $("sizeLabel").textContent = "size " + entries.length;
+  $("printOut").textContent = printStr();
+}
+function renderKey() {
+  $("keyText").innerHTML = `<span>Each key has exactly one line, pointing to its value. Putting a key that is already there moves its line to the new value. ` +
+    (impl === "HashMap" ? "A HashMap makes no promise about the order it prints in." : "A TreeMap always prints its keys from smallest to largest.") + `</span>`;
+}
+function say(text, cls) { floater.className = cls ? "c-" + cls : ""; floater.textContent = text; }
+function hl(e, cls, which) {
+  if (which !== "v") e.kItem.classList.add("hl-" + cls);
+  if (which !== "k" && e.vItem) e.vItem.classList.add("hl-" + cls);
+  if (which !== "k" && which !== "v") setLineState(e, cls);
+}
+function clearHighlights() {
+  say("", "");
+  stage.querySelectorAll(".item").forEach(c => c.classList.remove("hl-add", "hl-remove", "hl-peek", "hl-query"));
+  entries.forEach(e => e.line && setLineState(e, ""));
+}
+async function beat() { clearHighlights(); await sleep(180); }
+function wobble(bub) { bub.classList.remove("wobble"); reflow(bub); bub.classList.add("wobble"); }
+const findKey = (raw) => entries.find(e => e.k.raw === raw);
+
+/* ---------- log ---------- */
+function renderLog() {
+  $("callCount").textContent = log.length + (log.length === 1 ? " call" : " calls");
+  if (log.length === 0) { logEl.innerHTML = '<div class="log-empty">No calls yet.</div>'; return; }
+  logEl.innerHTML = log.map((e, i) => ({ e, i })).reverse().map(({ e, i }) => `
+    <div class="entry${i === log.length - 1 ? " latest" : ""}">
+      <span class="num">${i + 1}</span>
+      <span class="code">m.<span class="m-${e.kind}">${esc(e.method)}</span>(${esc(e.args || "")});</span>
+      <span class="ret">returns <b>${esc(e.returns)}</b></span>
+      ${e.note ? `<span class="note">${esc(e.note)}</span>` : ""}
+      <span class="snapshot">m is now ${esc(e.after)}</span>
+    </div>`).join("");
+  logEl.scrollTop = 0;
+}
+function addLog(entry) { entry.after = printStr(); log.push(entry); renderLog(); }
+
+/* ---------- input ---------- */
+function parse(id, t, name) {
+  const s = $(id).value.trim();
+  if (t === "Integer") {
+    if (!/^-?\d+$/.test(s)) return { error: `Enter a whole number for ${name}.` };
+    const n = Number(s);
+    if (n > 2147483647 || n < -2147483648) return { error: `${name} is outside the int range.` };
+    return { raw: String(n), lit: String(n) };
+  }
+  const raw = s.replace(/^"(.*)"$/, "$1");
+  if (raw === "") return { error: `Enter some text for ${name}.` };
+  return { raw, lit: "\"" + raw + "\"" };
+}
+function showInputError(msg) { const e = $("inputError"); e.textContent = msg; e.hidden = !msg; }
+function advanceSuggestion() {
+  const s = T().sug[suggestIdx % T().sug.length];
+  $("keyInput").value = s[0];
+  $("valInput").value = s[1];
+  suggestIdx++;
+}
+function readOne(id, t, name) {
+  const x = parse(id, t, name);
+  if (x.error) { showInputError(x.error); return null; }
+  showInputError(""); return x;
+}
+
+/* ---------- operations ---------- */
+async function doPut() {
+  const k = parse("keyInput", T().k, "key"); if (k.error) return showInputError(k.error);
+  const v = parse("valInput", T().v, "value"); if (v.error) return showInputError(v.error);
+  showInputError("");
+  setBusy(true);
+  await beat();
+  const e = findKey(k.raw);
+
+  if (e) {
+    const old = e.v;
+    if (old.raw === v.raw) {
+      hl(e, "add");
+      say("returns " + old.lit, "add");
+      addLog({ kind: "add", method: "put", args: k.lit + ", " + v.lit, returns: old.lit, note: `${k.lit} already pointed to ${v.lit}, so nothing changed` });
+      advanceSuggestion(); setBusy(false); return;
+    }
+    // same key: the line lets go of the old value, the old value leaves, the line reaches the new value
+    e.kItem.classList.add("hl-add");
+    e.vItem.classList.add("hl-remove");
+    setLineState(e, "add");
+    await sleep(300);
+    await animLine(e, 0, 320);
+    e.vItem.classList.add("leave");
+    await sleep(420);
+    e.vItem.remove();
+    e.vItem = makeOrb(vb, v.raw, true);
+    e.vItem.classList.add("hl-add");
+    e.vPos = placeOrb(vb, e.vItem, valPositions(e), e.kPos.y);
+    e.v = v;
+    await sleep(350);
+    await animLine(e, 1, 420);
+    refresh();
+    say("returns " + old.lit, "add");
+    addLog({ kind: "add", method: "put", args: k.lit + ", " + v.lit, returns: old.lit, note: `${k.lit} was already a key, so its value was replaced (${old.lit} → ${v.lit})` });
+    advanceSuggestion(); setBusy(false); return;
+  }
+
+  // new key: key pops in, value pops in, then the line draws from key to value
+  const ne = { k, v, seq: seq++, kItem: makeOrb(kb, k.raw, false), vItem: null, line: makeLine(), p0: 0, p1: 0, t0: 0, dur: 0 };
+  ne.kItem.classList.add("hl-add");
+  ne.kPos = placeOrb(kb, ne.kItem, keyPositions());
+  entries.push(ne);
+  if (entries.length > capacity * 0.75) capacity *= 2;
+  setLineState(ne, "add");
+  refresh();
+  await sleep(380);
+  ne.vItem = makeOrb(vb, v.raw, true);
+  ne.vItem.classList.add("hl-add");
+  ne.vPos = placeOrb(vb, ne.vItem, valPositions(ne), ne.kPos.y);
+  await sleep(380);
+  await animLine(ne, 1, 450);
+  say("returns null", "add");
+  addLog({ kind: "add", method: "put", args: k.lit + ", " + v.lit, returns: "null", note: `new key ${k.lit}` });
+  advanceSuggestion();
+  setBusy(false);
+}
+
+async function doGet() {
+  const k = readOne("keyInput", T().k, "key"); if (!k) return;
+  setBusy(true);
+  await beat();
+  const e = findKey(k.raw);
+  if (e) {
+    e.kItem.classList.add("hl-peek");
+    setLineState(e, "peek");
+    await animLine(e, 0.0001, 1); await animLine(e, 1, 380);
+    e.vItem.classList.add("hl-peek");
+    say("returns " + e.v.lit, "peek");
+  } else { wobble(kb); say("returns null", "peek"); }
+  addLog({ kind: "peek", method: "get", args: k.lit, returns: e ? e.v.lit : "null", note: e ? "" : `${k.lit} is not a key` });
+  await sleep(250);
+  setBusy(false);
+}
+
+async function doContainsKey() {
+  const k = readOne("keyInput", T().k, "key"); if (!k) return;
+  setBusy(true);
+  await beat();
+  const e = findKey(k.raw);
+  if (e) e.kItem.classList.add("hl-peek"); else wobble(kb);
+  say("returns " + !!e, "peek");
+  addLog({ kind: "peek", method: "containsKey", args: k.lit, returns: String(!!e) });
+  await sleep(300);
+  setBusy(false);
+}
+
+async function doContainsValue() {
+  const v = readOne("valInput", T().v, "value"); if (!v) return;
+  setBusy(true);
+  await beat();
+  const hits = entries.filter(e => e.v.raw === v.raw);
+  if (hits.length) hits.forEach(e => e.vItem.classList.add("hl-peek")); else wobble(vb);
+  say("returns " + (hits.length > 0), "peek");
+  addLog({ kind: "peek", method: "containsValue", args: v.lit, returns: String(hits.length > 0),
+    note: hits.length > 1 ? `${hits.length} keys point to ${v.lit}` : "" });
+  await sleep(300);
+  setBusy(false);
+}
+
+async function doRemove() {
+  const k = readOne("keyInput", T().k, "key"); if (!k) return;
+  setBusy(true);
+  await beat();
+  const e = findKey(k.raw);
+  if (!e) {
+    wobble(kb);
+    say("returns null", "remove");
+    addLog({ kind: "remove", method: "remove", args: k.lit, returns: "null", note: `${k.lit} is not a key, so nothing changed` });
+    await sleep(350);
+    setBusy(false); return;
+  }
+  hl(e, "remove");
+  await sleep(380);
+  await animLine(e, 0, 320);
+  e.kItem.classList.add("leave");
+  e.vItem.classList.add("leave");
+  say("returns " + e.v.lit, "remove");
+  await sleep(500);
+  e.kItem.remove(); e.vItem.remove(); e.line.remove();
+  entries.splice(entries.indexOf(e), 1);
+  refresh();
+  addLog({ kind: "remove", method: "remove", args: k.lit, returns: e.v.lit, note: "the key, its line, and its value leave together" });
+  setBusy(false);
+}
+
+async function doQuery(method) {
+  setBusy(true);
+  await beat();
+  const n = entries.length;
+  const result = method === "isEmpty" ? String(n === 0) : String(n);
+  entries.forEach(e => e.kItem.classList.add("hl-query"));
+  say("returns " + result, "query");
+  addLog({ kind: "query", method, returns: result });
+  await sleep(250);
+  setBusy(false);
+}
+
+function doReset() {
+  $("declLabel").textContent = `Map<${T().k}, ${T().v}> m = new ${impl}<>();`;
+  stage.querySelectorAll(".item").forEach(el => el.remove());
+  svg.querySelectorAll("line").forEach(el => el.remove());
+  entries = []; log = []; seq = 0; suggestIdx = 0; capacity = 16;
+  clearHighlights();
+  refresh();
+  renderKey();
+  renderLog();
+  advanceSuggestion();
+  showInputError("");
+}
+
+const guard = (fn) => () => { if (!busy) fn(); };
+$("btnPut").addEventListener("click", guard(doPut));
+["keyInput", "valInput"].forEach(id => $(id).addEventListener("keydown", (e) => { if (e.key === "Enter" && !busy) doPut(); }));
+$("btnGet").addEventListener("click", guard(doGet));
+$("btnContains").addEventListener("click", guard(doContainsKey));
+$("btnContainsV").addEventListener("click", guard(doContainsValue));
+$("btnRemove").addEventListener("click", guard(doRemove));
+$("btnEmpty").addEventListener("click", guard(() => doQuery("isEmpty")));
+$("btnSize").addEventListener("click", guard(() => doQuery("size")));
+$("btnReset").addEventListener("click", guard(doReset));
+$("typeSelect").addEventListener("change", (e) => { tkey = e.target.value; doReset(); });
+$("implSelect").addEventListener("change", (e) => { impl = e.target.value; doReset(); });
+
+doReset();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
