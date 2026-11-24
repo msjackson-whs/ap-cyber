@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Firewall Rule Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500&family=Roboto+Slab:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE everyday classroom tool: clear, calm, no ambiguity
+   IDEA a firewall console: a brick wall between two zones and a rule list each packet is checked against
+   PICTURE the ACL table itself; rows light up one by one as a test packet is checked top to bottom
+   COLOUR white ground, brick red bands (the wall), blue for permit, red for deny, amber while checking
+   TYPE Roboto Slab throughout (her class font), Roboto Mono for addresses and ports
+   LAYOUT brick header; scenario (requirements beside network map); ACL wide with packet tester beside it; phone stacks */
+:root{color-scheme:light dark;
+--bg:light-dark(#ffffff,#141112);--ink:light-dark(#1c1a19,#f2edea);--soft:light-dark(#5f5754,#b9b0ab);
+--panel:light-dark(#f6f2ef,#1f1a19);--line:light-dark(#d8cfca,#3b3331);
+--brick:light-dark(#8f3320,#7a2b1b);
+--permit:light-dark(#1b63a8,#7fbaf0);--permitbg:light-dark(#e3effa,#15283a);
+--deny:light-dark(#b3261e,#ff9089);--denybg:light-dark(#fbe7e5,#3a1918);
+--warn:light-dark(#7a5000,#f2c36b);--warnbg:light-dark(#fff3d6,#332810)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 "Roboto Slab",Georgia,serif;overflow-x:clip}
+.mono,code{font-family:"Roboto Mono",ui-monospace,Consolas,monospace}
+.band{padding:clamp(20px,3vw,40px) max(4vw,16px)}
+.wrap{max-width:1240px;margin:0 auto}
+.bricks{background-color:var(--brick);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='40'%3E%3Cpath d='M0 1h80M0 21h80M20 1v20M60 21v20' fill='none' stroke='%23000' stroke-opacity='.25' stroke-width='2'/%3E%3C/svg%3E");color:#fff}
+header.band{padding-bottom:0}
+h1{font-size:clamp(32px,4.5vw,46px);line-height:1.05;letter-spacing:-.02em;margin:0 0 8px;text-wrap:balance}
+.lede{margin:0 0 18px;max-width:62ch;font-size:17px}
+.toprow{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:end;justify-content:space-between}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tabs button{font:inherit;font-weight:500;min-height:48px;padding:8px 18px;border:0;border-radius:10px 10px 0 0;background:rgba(255,255,255,.16);color:#fff;cursor:pointer}
+.tabs button:hover{background:rgba(255,255,255,.28)}
+.tabs button[aria-selected=true]{background:var(--bg);color:var(--ink);font-weight:700}
+.who{display:flex;gap:10px;align-items:center;padding-bottom:10px;font-weight:500}
+.who input{width:220px;background:#fff;color:#1c1a19;border-color:transparent}
+h2{font-size:24px;line-height:1.15;margin:0 0 6px}
+h3{font-size:17px;margin:0 0 8px}
+p{margin:0 0 12px}
+.soft{color:var(--soft)}
+.scen{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:20px 36px;align-items:start}
+.reqs{margin:8px 0 14px;padding-left:24px}
+.reqs li{margin:0 0 10px;padding-left:4px}
+.pill{display:inline-block;margin-left:8px;padding:1px 10px;border-radius:99px;font-size:14px;font-weight:700;white-space:nowrap}
+.pill:empty{display:none}
+.pill.met{background:var(--permitbg);color:var(--permit)}
+.pill.not{background:var(--denybg);color:var(--deny)}
+.map{display:grid;grid-template-columns:minmax(0,1fr) 54px minmax(0,1fr);gap:0 12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+.zone h3{font-size:15px}
+.zone ul{list-style:none;margin:0;padding:0}
+.zone li{margin:0 0 8px;font-size:14px;line-height:1.3}
+.zone li span{display:block;color:var(--soft)}
+.zone code{font-size:14px;overflow-wrap:anywhere}
+.wall{border-radius:6px;display:grid;place-items:center;min-height:150px}
+.wall span{writing-mode:vertical-rl;transform:rotate(180deg);font-weight:700;letter-spacing:.04em}
+.dirs{grid-column:1/-1;display:grid;gap:6px;margin-top:12px;font-size:14px}
+.arrow{position:relative;padding:4px 0;font-weight:500}
+.arrow::before{content:"";display:block;height:3px;background:currentColor;margin:0 10px 4px}
+.arrow::after{content:"";position:absolute;top:-2px;border:7px solid transparent}
+.arrow.in{color:var(--permit)}
+.arrow.in::after{right:0;border-left:12px solid currentColor;border-right:0}
+.arrow.out{color:var(--soft);text-align:right}
+.arrow.out::after{left:0;border-right:12px solid currentColor;border-left:0}
+.work{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:24px;align-items:start;margin-top:8px}
+.tester{display:grid;gap:0 28px}
+.how{max-width:75ch}
+.tblwrap{border:1px solid var(--line);border-radius:12px;overflow-x:auto}
+table.rules{border-collapse:collapse;width:100%}
+.rules th{font-size:14px;font-weight:500;color:var(--soft);text-align:left;padding:10px 6px;border-bottom:1px solid var(--line);background:var(--panel);white-space:nowrap}
+.rules td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+.rules tr:last-child td{border-bottom:0}
+.rules td.n{font-weight:700;font-size:18px;padding-top:16px;text-align:center;width:36px}
+.rules td.st{font-size:14px;padding-top:16px;width:118px;font-weight:500}
+.rules tr{transition:background-color .2s}
+.rules tr.imp{background:var(--panel)}
+.lock{display:flex;align-items:center;min-height:44px;padding:6px 8px;border:1.5px dashed var(--line);border-radius:8px;color:var(--soft);font-size:15px}
+.impl{display:flex;align-items:center;min-height:44px;font-size:13px;line-height:1.3;color:var(--soft)}
+.rules tr.checking{background:var(--warnbg)}
+.rules tr.checking td.st{color:var(--warn)}
+.rules tr.no td.st{color:var(--soft)}
+.rules tr.skip{opacity:.5}
+.rules tr.match.permit{background:var(--permitbg)}
+.rules tr.match.permit td.st{color:var(--permit)}
+.rules tr.match.deny{background:var(--denybg)}
+.rules tr.match.deny td.st{color:var(--deny)}
+.empty td{padding:22px;text-align:center;color:var(--soft)}
+input,select{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:8px;min-height:44px;padding:6px 8px;width:100%}
+input.mono{font-size:15px}
+input:disabled{background:var(--panel);color:var(--soft)}
+input.bad{border-color:var(--deny);background:var(--denybg)}
+:focus-visible{outline:3px solid var(--permit);outline-offset:2px}
+.cmb{position:relative;display:block}
+.cmb input{padding-right:38px}
+.pick{position:absolute;right:3px;top:3px;bottom:3px;width:34px;border:0;border-radius:6px;background:transparent;color:var(--soft);cursor:pointer;display:grid;place-items:center;padding:0}
+.pick:hover:not(:disabled){background:var(--panel);color:var(--ink)}
+.pick:disabled{opacity:.3;cursor:default}
+.pick svg{width:14px;height:14px}
+#pop{position:absolute;z-index:50;background:var(--bg);border:1.5px solid var(--ink);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:4px;max-height:320px;overflow-y:auto}
+#pop[hidden]{display:none}
+#pop button{display:flex;justify-content:space-between;align-items:center;gap:16px;width:100%;min-height:42px;padding:6px 10px;border:0;border-radius:6px;background:none;color:var(--ink);font:inherit;font-size:15px;text-align:left;cursor:pointer}
+#pop button:hover,#pop button:focus-visible{background:var(--panel);outline:none}
+#pop button:focus-visible{box-shadow:inset 0 0 0 2px var(--permit)}
+#pop button[aria-selected=true]{font-weight:700}
+#pop button span:last-child{color:var(--soft);font-size:14px;font-weight:400}
+.svc{display:block;font-size:13px;color:var(--soft);min-height:18px;padding-top:2px}
+.rules .dir{min-width:118px}.rules .proto{min-width:92px}.rules .ip{min-width:148px}.rules .port{min-width:84px}.rules .act{min-width:100px}
+.tools{white-space:nowrap;width:150px}
+.ib{font:inherit;min-width:44px;min-height:44px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;cursor:pointer;font-size:18px}
+.ib:hover:not(:disabled){border-color:var(--ink)}
+.ib:disabled{opacity:.35;cursor:default}
+.btn{font:inherit;font-weight:700;min-height:46px;padding:8px 18px;border-radius:10px;border:1.5px solid var(--ink);background:var(--bg);color:var(--ink);cursor:pointer}
+.btn:hover:not(:disabled){background:var(--panel)}
+.btn.main{background:var(--brick);border-color:var(--brick);color:#fff}
+.btn.main:hover:not(:disabled){background:#6f2617}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0 0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+.tester{position:sticky;top:12px}
+.tester label{display:block;font-size:14px;font-weight:500;margin:10px 0 4px}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 10px}
+#result{margin-top:14px;padding:12px 14px;border-radius:10px;font-weight:500;border:1.5px solid var(--line);background:var(--bg)}
+#result:empty{display:none}
+#result.permit{border-color:var(--permit);background:var(--permitbg);color:var(--permit)}
+#result.deny{border-color:var(--deny);background:var(--denybg);color:var(--deny)}
+#result.none,#result.err{border-color:var(--warn);background:var(--warnbg);color:var(--warn)}
+#result b{font-size:20px;display:block}
+.log{margin:14px 0 0;padding:0;list-style:none;max-height:260px;overflow-y:auto}
+.log li{font-size:13px;line-height:1.35;padding:7px 0;border-top:1px solid var(--line)}
+.log li b.permit{color:var(--permit)}.log li b.deny{color:var(--deny)}.log li b.none{color:var(--warn)}
+.logs{display:flex;justify-content:space-between;align-items:center;margin-top:16px}
+.logs h3{margin:0}
+.link{font:inherit;font-size:14px;background:none;border:0;color:var(--permit);text-decoration:underline;cursor:pointer;min-height:44px}
+.submit{margin-top:28px;border-top:1px solid var(--line);padding-top:22px}
+#copyOut{width:100%;min-height:160px;margin-top:12px;font-size:13px}
+#copyOut[hidden]{display:none}
+.ask{margin-top:14px;padding:14px 16px;border:1.5px solid var(--warn);background:var(--warnbg);border-radius:12px;max-width:560px}
+.ask[hidden]{display:none}
+.ask p{margin:0 0 12px}
+#checkSum{font-weight:700;margin:0 0 0 4px}
+.nocheck .chk{display:none}
+@media(max-width:1480px){.work{grid-template-columns:minmax(0,1fr)}.tester{position:static}}
+@media(max-width:1480px) and (min-width:761px){.tester{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+@media(max-width:760px){.scen{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:720px){
+.rules thead{display:none}
+.rules,.rules tbody{display:block}
+.rules tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px 10px;padding:12px;border-bottom:1px solid var(--line)}
+.rules td{display:block;padding:0;border:0;width:auto}
+.rules td::before{content:attr(data-l);display:block;font-size:13px;color:var(--soft)}
+.rules td.n{text-align:left;padding:0}.rules td.n::before{content:"Rule";display:inline;font-size:18px;color:var(--ink);margin-right:6px}
+.rules td.st{padding:0;align-self:end}.rules td.st::before{display:none}
+.rules td.tools{grid-column:1/-1}
+.rules .dir,.rules .proto,.rules .ip,.rules .port,.rules .act{min-width:0}
+.empty td{grid-column:1/-1}
+.who input{width:100%}.who{width:100%}
+}
+@media(prefers-reduced-motion:reduce){.rules tr{transition:none}}
+</style>
+</head>
+<body>
+<header class="band bricks">
+  <div class="wrap">
+    <h1>Firewall rule builder</h1>
+    <p class="lede">Write an access control list (ACL) that meets the requirements. Then send test packets to see which rule the firewall applies.</p>
+    <div class="toprow">
+      <div class="tabs" role="tablist" id="tabs"></div>
+      <label class="who" for="who"><span style="white-space:nowrap">Your name</span> <input id="who" autocomplete="name"></label>
+    </div>
+  </div>
+</header>
+
+<main class="band">
+  <div class="wrap">
+    <section class="scen" aria-labelledby="scTitle">
+      <div>
+        <h2 id="scTitle"></h2>
+        <p id="scDesc"></p>
+        <h3>Requirements</h3>
+        <ol class="reqs" id="reqs"></ol>
+        <div class="chk">
+          <button class="btn" id="check" type="button">Check my ACL</button>
+          <span id="checkSum" aria-live="polite"></span>
+        </div>
+      </div>
+      <div class="map" id="map"></div>
+    </section>
+
+    <div class="work">
+      <section aria-labelledby="aclTitle">
+        <h2 id="aclTitle" style="margin-top:28px">Your ACL</h2>
+        <p class="how soft">The firewall checks rules from top to bottom and applies the first rule that matches. The last rule is always the implicit deny: any packet that does not match a rule above it is denied. A blank field means Any. This firewall checks each packet by itself, using only its header, the way a stateless firewall does.</p>
+        <div class="tblwrap">
+          <table class="rules">
+            <thead><tr><th>#</th><th>Direction</th><th>Protocol</th><th>Source IP</th><th>Destination IP</th><th>Dest. port</th><th>Action</th><th>Check</th><th><span class="soft">Move or delete</span></th></tr></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+        <div class="row">
+          <button class="btn main" id="add" type="button">Add rule</button>
+          <button class="btn" id="undo" type="button">Undo</button>
+          <button class="btn" id="reset" type="button">Start this level over</button>
+        </div>
+        <div id="resetAsk" class="ask" role="alertdialog" aria-labelledby="askText" hidden><p id="askText"><b>Start this level over?</b> This clears every rule you wrote on this level and the packets you sent.</p><div class="row" style="margin:0"><button class="btn main" id="resetYes" type="button">Yes, start over</button><button class="btn" id="resetNo" type="button">Keep my rules</button></div></div>
+      </section>
+
+      <aside class="panel tester" aria-labelledby="pkTitle">
+        <div>
+        <h2 id="pkTitle" style="font-size:20px">Test packet</h2>
+        <p class="soft" style="font-size:14px">Build a packet and send it through your ACL.</p>
+        <div class="pair">
+          <div><label for="pdir">Direction</label><select id="pdir"><option value="in">Inbound</option><option value="out">Outbound</option></select></div>
+          <div><label for="pproto">Protocol</label><select id="pproto"><option value="tcp">TCP</option><option value="udp">UDP</option><option value="icmp">ICMP</option></select></div>
+        </div>
+        <label for="psrc">Source IP</label><span class="cmb"><input id="psrc" class="mono" data-list="hosts" autocomplete="off" spellcheck="false"><button type="button" class="pick" data-for="psrc" aria-label="Choose packet source IP"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button></span>
+        <label for="pdst">Destination IP</label><span class="cmb"><input id="pdst" class="mono" data-list="hosts" autocomplete="off" spellcheck="false"><button type="button" class="pick" data-for="pdst" aria-label="Choose packet destination IP"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button></span>
+        <label for="pport">Destination port</label><span class="cmb"><input id="pport" class="mono" data-list="ports" autocomplete="off" inputmode="numeric"><button type="button" class="pick" data-for="pport" aria-label="Choose packet destination port"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button></span>
+        <span class="svc" id="psvc"></span>
+        <div class="row" style="margin-top:6px"><button class="btn main" id="send" type="button">Send packet</button></div>
+        </div><div>
+        <div id="result" role="status" aria-live="polite"></div>
+        <div class="logs"><h3>Packets sent</h3><button class="link" id="clearLog" type="button">Clear</button></div>
+        <ol class="log" id="log"></ol>
+        </div>
+      </aside>
+    </div>
+
+    <section class="submit" aria-labelledby="subTitle">
+      <h2 id="subTitle" style="font-size:20px">Turn it in</h2>
+      <p class="soft">When you are done, copy your work and paste it into the Schoology assignment.</p>
+      <button class="btn main" id="copy" type="button">Copy my work</button>
+      <span id="copyMsg" class="soft" aria-live="polite" style="margin-left:10px"></span>
+      <textarea id="copyOut" class="mono" readonly hidden aria-label="Your work, ready to copy"></textarea>
+    </section>
+  </div>
+</main>
+<datalist id="hosts"></datalist>
+<datalist id="ports"><option value="22">SSH</option><option value="23">Telnet</option><option value="53">DNS</option><option value="80">HTTP</option><option value="443">HTTPS</option></datalist>
+
+<script>
+{
+const LV=[
+{title:'Web server segment',
+ desc:'A firewall sits at the edge of the network segment that holds the school web server. Traffic coming into the segment is inbound. Rule 1 is written for you as an example.',
+ outLabel:'Outside this segment',inLabel:'Web server segment',
+ out:[['Admin workstation','10.0.5.20'],['Teacher computer','10.0.5.31'],['Internet host','203.0.113.45'],['Internet host','198.51.100.7']],
+ inn:[['Web server','10.0.1.10']],
+ reqs:['Anyone may reach the web server over HTTPS (TCP port 443).','Only the admin workstation (10.0.5.20) may connect to the web server with SSH (TCP port 22).','Anyone may send ICMP traffic (such as a ping) to the web server, except the internet host 203.0.113.45, which has been flooding it with ICMP traffic.','Nothing else may reach the web server. (The implicit deny handles this, as long as your other rules are not too broad.)'],
+ starter:[{dir:'in',proto:'tcp',src:'',dst:'10.0.1.10',port:'443',act:'permit'}],
+ pkt:{dir:'in',proto:'tcp',src:'203.0.113.45',dst:'10.0.1.10',port:'443'},
+ tests:[[0,'in','tcp','203.0.113.45','10.0.1.10',443,'permit'],[0,'in','tcp','198.51.100.7','10.0.1.10',443,'permit'],[0,'in','tcp','10.0.5.20','10.0.1.10',443,'permit'],
+  [1,'in','tcp','10.0.5.20','10.0.1.10',22,'permit'],[1,'in','tcp','203.0.113.45','10.0.1.10',22,'deny'],[1,'in','tcp','10.0.5.31','10.0.1.10',22,'deny'],
+  [2,'in','icmp','10.0.5.31','10.0.1.10','','permit'],[2,'in','icmp','198.51.100.7','10.0.1.10','','permit'],[2,'in','icmp','203.0.113.45','10.0.1.10','','deny'],
+  [3,'in','tcp','203.0.113.45','10.0.1.10',23,'deny'],[3,'in','udp','198.51.100.7','10.0.1.10',53,'deny'],[3,'in','tcp','203.0.113.45','10.0.1.10',80,'deny'],[3,'in','udp','203.0.113.45','10.0.1.10',443,'deny'],[3,'in','udp','10.0.5.20','10.0.1.10',22,'deny']]},
+{title:'School internet connection',
+ desc:'A firewall sits where the school network connects to the internet. This time, write rules for outbound traffic: traffic leaving the school network.',
+ outLabel:'Internet',inLabel:'School network',
+ out:[['Website','203.0.113.80'],['Website','198.51.100.20'],['District DNS server','198.51.100.53'],['Other DNS server','203.0.113.53'],['Known malicious server','203.0.113.66']],
+ inn:[['Lab computer','10.0.2.15'],['Lab computer','10.0.2.16']],
+ reqs:['School computers may visit websites using HTTP (TCP port 80) or HTTPS (TCP port 443).','School computers may send DNS requests (UDP port 53) only to the district DNS server (198.51.100.53).','No traffic of any kind may go to the known malicious server (203.0.113.66).','Nothing else may leave the school network. (The implicit deny handles this, as long as your other rules are not too broad.)'],
+ starter:[],
+ pkt:{dir:'out',proto:'tcp',src:'10.0.2.15',dst:'203.0.113.80',port:'443'},
+ tests:[[0,'out','tcp','10.0.2.15','203.0.113.80',443,'permit'],[0,'out','tcp','10.0.2.16','198.51.100.20',80,'permit'],
+  [1,'out','udp','10.0.2.15','198.51.100.53',53,'permit'],[1,'out','udp','10.0.2.15','203.0.113.53',53,'deny'],
+  [2,'out','tcp','10.0.2.15','203.0.113.66',443,'deny'],[2,'out','tcp','10.0.2.16','203.0.113.66',80,'deny'],[2,'out','icmp','10.0.2.15','203.0.113.66','','deny'],
+  [3,'out','tcp','10.0.2.15','203.0.113.80',22,'deny'],[3,'out','icmp','10.0.2.15','203.0.113.80','','deny'],[3,'out','udp','10.0.2.16','203.0.113.80',123,'deny'],[3,'out','udp','10.0.2.15','203.0.113.80',443,'deny'],[3,'out','udp','10.0.2.16','198.51.100.20',80,'deny'],[3,'out','tcp','10.0.2.15','198.51.100.53',53,'deny']]},
+{title:'Clinic network',
+ desc:'A firewall sits where a small clinic network connects to the internet. Write rules for both directions.',
+ outLabel:'Internet',inLabel:'Clinic network',
+ out:[['IT vendor','203.0.113.10'],['Internet user','203.0.113.45'],['Website','203.0.113.80'],['DNS server','198.51.100.53'],['Known malicious server','198.51.100.66']],
+ inn:[['Patient portal server','10.0.1.10'],['Front desk computer','10.0.2.30']],
+ reqs:['Anyone on the internet may reach the patient portal server (10.0.1.10) over HTTPS (TCP port 443). No other clinic computer accepts HTTPS from outside.','The IT vendor (203.0.113.10) may use SSH (TCP port 22) to reach any clinic computer. Nobody else may use SSH to get in.','Clinic computers may send HTTPS (TCP port 443) and DNS (UDP port 53) traffic out to any address except the known malicious server (198.51.100.66).','Nothing else may pass in either direction. (The implicit deny handles this, as long as your other rules are not too broad.)'],
+ starter:[],
+ pkt:{dir:'in',proto:'tcp',src:'203.0.113.45',dst:'10.0.1.10',port:'443'},
+ tests:[[0,'in','tcp','203.0.113.45','10.0.1.10',443,'permit'],[0,'in','tcp','203.0.113.45','10.0.2.30',443,'deny'],
+  [1,'in','tcp','203.0.113.10','10.0.1.10',22,'permit'],[1,'in','tcp','203.0.113.10','10.0.2.30',22,'permit'],[1,'in','tcp','203.0.113.45','10.0.1.10',22,'deny'],
+  [2,'out','tcp','10.0.2.30','203.0.113.80',443,'permit'],[2,'out','udp','10.0.2.30','198.51.100.53',53,'permit'],[2,'out','tcp','10.0.2.30','198.51.100.66',443,'deny'],[2,'out','udp','10.0.1.10','198.51.100.66',53,'deny'],
+  [3,'in','tcp','203.0.113.45','10.0.1.10',80,'deny'],[3,'out','tcp','10.0.2.30','203.0.113.80',80,'deny'],[3,'in','icmp','203.0.113.45','10.0.1.10','','deny'],[3,'out','icmp','10.0.2.30','203.0.113.80','','deny'],[3,'out','udp','10.0.2.30','203.0.113.80',443,'deny'],[3,'out','tcp','10.0.2.30','198.51.100.53',53,'deny'],[3,'in','udp','203.0.113.45','10.0.1.10',443,'deny']]}
+];
+const SVC={22:'SSH',23:'Telnet',53:'DNS',80:'HTTP',443:'HTTPS'};
+const DIR={in:'Inbound',out:'Outbound'},PROTO={any:'Any',tcp:'TCP',udp:'UDP',icmp:'ICMP'},ACT={permit:'Permit',deny:'Deny'};
+const LBL={dir:'direction',proto:'protocol',src:'source IP',dst:'destination IP',port:'destination port',act:'action'};
+const KEY='fw-rule-builder-v1';
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clone=o=>JSON.parse(JSON.stringify(o));
+const norm=v=>{v=String(v??'').trim();return /^any$/i.test(v)?'':v};
+const ipOk=v=>{v=norm(v);return v===''||(/^\d{1,3}(\.\d{1,3}){3}$/.test(v)&&v.split('.').every(n=>+n<=255))};
+const portOk=v=>{v=norm(v);return v===''||(/^\d{1,5}$/.test(v)&&+v>=1&&+v<=65535)};
+const ruleOk=r=>ipOk(r.src)&&ipOk(r.dst)&&(r.proto==='icmp'||portOk(r.port));
+const svc=v=>SVC[norm(v)]||'';
+const PORTL=[['22','SSH'],['23','Telnet'],['53','DNS'],['80','HTTP'],['443','HTTPS']];
+const pop=document.createElement('div');pop.id='pop';pop.setAttribute('role','listbox');pop.hidden=true;document.body.appendChild(pop);
+let popFor=null;
+function placePop(){if(!popFor)return;const r=popFor.getBoundingClientRect(),w=Math.max(r.width,230);pop.style.minWidth=w+'px';
+  pop.style.left=Math.max(8,Math.min(r.left,innerWidth-w-8))+scrollX+'px';pop.style.top=r.bottom+scrollY+4+'px'}
+function openPop(inp){
+  const rule=!!inp.dataset.f,cur=norm(inp.value);
+  const opts=inp.dataset.list==='ports'?PORTL.map(([v,n])=>[v,n]):[...L().out,...L().inn].map(([n,ip])=>[ip,n]);
+  if(rule)opts.unshift(['','']);
+  pop.innerHTML=opts.map(([v,n])=>`<button type="button" role="option" data-v="${v}" aria-selected="${cur===v}"><span class="mono">${v||'Any'}</span><span>${esc(n)}</span></button>`).join('');
+  popFor=inp;pop.hidden=false;placePop();
+  (pop.querySelector('[aria-selected=true]')||pop.firstElementChild).focus();
+}
+function closePop(back){const i=popFor;pop.hidden=true;popFor=null;if(back&&i)i.focus()}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('.pick');
+  if(b){const i=$(b.dataset.for);if(popFor===i)closePop(true);else openPop(i);return}
+  if(popFor&&!e.target.closest('#pop'))closePop();
+});
+document.addEventListener('keydown',e=>{
+  if(e.target.dataset&&e.target.dataset.list&&e.key==='ArrowDown'&&!e.target.disabled){e.preventDefault();openPop(e.target)}
+});
+pop.addEventListener('click',e=>{
+  const o=e.target.closest('[data-v]');if(!o||!popFor)return;const i=popFor;
+  if(i.dataset.f)snap();
+  i.value=o.dataset.v;i.dispatchEvent(new Event('input',{bubbles:true}));save();closePop(true);
+});
+pop.addEventListener('keydown',e=>{
+  const bs=[...pop.children],k=bs.indexOf(document.activeElement);
+  if(e.key==='ArrowDown'){e.preventDefault();bs[Math.min(k+1,bs.length-1)].focus()}
+  else if(e.key==='ArrowUp'){e.preventDefault();bs[Math.max(k-1,0)].focus()}
+  else if(e.key==='Escape'||e.key==='Tab'){e.preventDefault();closePop(true)}
+});
+addEventListener('scroll',placePop,{passive:true});addEventListener('resize',placePop);
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const wait=ms=>new Promise(r=>setTimeout(r,reduce?0:ms));
+
+let S={who:'',lv:0,acls:LV.map(l=>clone(l.starter)),logs:LV.map(()=>[]),checks:LV.map(()=>null)};
+try{const raw=localStorage.getItem(KEY);if(raw){const d=JSON.parse(raw);if(d&&Array.isArray(d.acls)&&d.acls.length===LV.length)S=Object.assign(S,d)}}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const undo=LV.map(()=>[]);
+let trace=[],busy=false,pending=null;
+if(location.hash==='#nocheck')document.body.classList.add('nocheck');
+
+const why=(r,p)=>{
+  if(r.dir!==p.dir)return 'direction';
+  if(r.proto!=='any'&&r.proto!==p.proto)return 'protocol';
+  if(norm(r.src)&&norm(r.src)!==p.src)return 'source IP';
+  if(norm(r.dst)&&norm(r.dst)!==p.dst)return 'destination IP';
+  if(r.proto!=='icmp'&&norm(r.port)&&(p.proto==='icmp'||+norm(r.port)!==+p.port))return 'port';
+  return '';
+};
+const evaluate=(acl,p)=>{for(let i=0;i<acl.length;i++)if(!why(acl[i],p))return{i,act:acl[i].act};return{i:acl.length,act:'deny',imp:true}};
+
+const acl=()=>S.acls[S.lv];
+const L=()=>LV[S.lv];
+
+function renderTabs(){
+  $('tabs').innerHTML=LV.map((l,i)=>`<button type="button" role="tab" id="tab${i}" aria-selected="${i===S.lv}" data-lv="${i}">Level ${i+1}</button>`).join('');
+}
+function renderScen(){
+  const l=L();
+  $('scTitle').textContent=`Level ${S.lv+1}: ${l.title}`;
+  $('scDesc').textContent=l.desc;
+  $('reqs').innerHTML=l.reqs.map((r,i)=>`<li><span>${esc(r)}</span><span class="pill" id="pill${i}"></span></li>`).join('');
+  const zone=(h,list)=>`<div class="zone"><h3>${esc(h)}</h3><ul>${list.map(([n,ip])=>`<li><span>${esc(n)}</span><code>${ip}</code></li>`).join('')}</ul></div>`;
+  $('map').innerHTML=zone(l.outLabel,l.out)+`<div class="wall bricks" aria-hidden="true"><span>Firewall</span></div>`+zone(l.inLabel,l.inn)+
+   `<div class="dirs"><div class="arrow in">Inbound: from ${esc(l.outLabel.toLowerCase())} into ${esc(l.inLabel.toLowerCase())}</div><div class="arrow out">Outbound: from ${esc(l.inLabel.toLowerCase())} out to ${esc(l.outLabel.toLowerCase())}</div></div>`;
+  $('hosts').innerHTML=[...l.out,...l.inn].map(([n,ip])=>`<option value="${ip}">${esc(n)}</option>`).join('');
+  renderCheck();
+}
+function renderCheck(){
+  const c=S.checks[S.lv],n=L().reqs.length;
+  for(let i=0;i<n;i++){const p=$('pill'+i);if(!p)continue;p.className='pill'+(c?(c[i]?' met':' not'):'');p.textContent=c?(c[i]?'Met':'Not met yet'):''}
+  $('checkSum').textContent=c?`${c.filter(Boolean).length} of ${n} requirements met`:'';
+}
+function sel(f,i,val,opts,cls){return `<select class="${cls}" data-f="${f}" id="r${i}-${f}" aria-label="Rule ${i+1} ${LBL[f]}">${opts.map(([v,t])=>`<option value="${v}"${v===val?' selected':''}>${t}</option>`).join('')}</select>`}
+function inp(f,i,val,list,ok,dis,cls){return `<span class="cmb"><input class="mono ${cls}${ok?'':' bad'}" data-f="${f}" id="r${i}-${f}" value="${esc(val)}" placeholder="${dis?'None':'Any'}" data-list="${list}" autocomplete="off" spellcheck="false" aria-label="Rule ${i+1} ${LBL[f]}"${dis?' disabled':''}><button type="button" class="pick" data-for="r${i}-${f}" aria-label="Choose rule ${i+1} ${LBL[f]}"${dis?' disabled':''}><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button></span>`}
+function renderTable(){
+  if(popFor)closePop();
+  const a=acl();
+  const ti=trace[a.length]||{cls:'',text:''};
+  const imp=`<tr class="imp ${ti.cls}" data-imp="1"><td class="n" data-l="">${a.length+1}</td><td data-l="Direction"><span class="lock">Both</span></td><td data-l="Protocol"><span class="lock">Any</span></td><td data-l="Source IP"><span class="lock">Any</span></td><td data-l="Destination IP"><span class="lock">Any</span></td><td data-l="Dest. port"><span class="lock">Any</span></td><td data-l="Action"><span class="lock">Deny</span></td><td class="st" data-l="Check">${ti.text}</td><td class="tools" data-l=""><span class="impl">Implicit deny, always last</span></td></tr>`;
+  if(!a.length){$('tbody').innerHTML=`<tr class="empty"><td colspan="9">No rules yet. Select Add rule to write your first one.</td></tr>`+imp;return}
+  $('tbody').innerHTML=a.map((r,i)=>{
+    const t=trace[i]||{cls:'',text:''},icmp=r.proto==='icmp';
+    return `<tr data-i="${i}" class="${t.cls}">
+<td class="n" data-l="">${i+1}</td>
+<td data-l="Direction">${sel('dir',i,r.dir,[['in','Inbound'],['out','Outbound']],'dir')}</td>
+<td data-l="Protocol">${sel('proto',i,r.proto,[['any','Any'],['tcp','TCP'],['udp','UDP'],['icmp','ICMP']],'proto')}</td>
+<td data-l="Source IP">${inp('src',i,r.src,'hosts',ipOk(r.src),false,'ip')}</td>
+<td data-l="Destination IP">${inp('dst',i,r.dst,'hosts',ipOk(r.dst),false,'ip')}</td>
+<td data-l="Dest. port">${inp('port',i,r.port,'ports',icmp||portOk(r.port),icmp,'port')}<span class="svc">${icmp?'ICMP has no port':svc(r.port)}</span></td>
+<td data-l="Action">${sel('act',i,r.act,[['permit','Permit'],['deny','Deny']],'act')}</td>
+<td class="st" data-l="Check">${t.text}</td>
+<td class="tools" data-l=""><button type="button" class="ib" data-a="up" aria-label="Move rule ${i+1} up"${i?'':' disabled'}>&#8593;</button> <button type="button" class="ib" data-a="down" aria-label="Move rule ${i+1} down"${i<a.length-1?'':' disabled'}>&#8595;</button> <button type="button" class="ib" data-a="del" aria-label="Delete rule ${i+1}">&#215;</button></td></tr>`}).join('')+imp;
+}
+const fmtPkt=p=>`${DIR[p.dir]} ${PROTO[p.proto]} ${p.src} to ${p.dst}${p.proto==='icmp'?'':':'+p.port}`;
+function renderLog(){
+  $('log').innerHTML=S.logs[S.lv].map(e=>`<li>${esc(fmtPkt(e.p))}<br><b class="${e.act}">${e.act==='none'?'No rule matched':`${ACT[e.act]}, rule ${e.i+1}${e.imp?' (implicit deny)':''}`}</b></li>`).join('')||'<li class="soft">None yet.</li>';
+}
+function setPacket(p){$('pdir').value=p.dir;$('pproto').value=p.proto;$('psrc').value=p.src;$('pdst').value=p.dst;$('pport').value=p.port;packetUI()}
+function packetUI(){const icmp=$('pproto').value==='icmp';const pp=$('pport');pp.disabled=icmp;pp.nextElementSibling.disabled=icmp;if(icmp)pp.value='';$('psvc').textContent=icmp?'ICMP has no port':svc(pp.value)}
+function renderAll(){renderTabs();renderScen();trace=[];renderTable();renderLog();$('result').textContent='';$('result').className='';setPacket(L().pkt)}
+
+function changed(){
+  trace=[];S.checks[S.lv]=null;renderCheck();
+  for(const tr of $('tbody').rows){const st=tr.querySelector('.st');if(st){tr.className=tr.dataset.imp?'imp':'';st.textContent=''}}
+  $('result').textContent='';$('result').className='';save();
+}
+function snap(){undo[S.lv].push(JSON.stringify(acl()));if(undo[S.lv].length>60)undo[S.lv].shift()}
+
+$('tabs').addEventListener('click',e=>{const b=e.target.closest('[data-lv]');if(!b||busy)return;S.lv=+b.dataset.lv;save();renderAll()});
+$('who').value=S.who;
+$('who').addEventListener('input',e=>{S.who=e.target.value;save()});
+const tb=$('tbody');
+tb.addEventListener('focusin',e=>{if(e.target.dataset.f)pending=JSON.stringify(acl())});
+tb.addEventListener('input',e=>{
+  const f=e.target.dataset.f;if(!f||e.target.tagName!=='INPUT')return;
+  const i=+e.target.closest('tr').dataset.i,v=e.target.value;acl()[i][f]=v;
+  e.target.classList.toggle('bad',!(f==='port'?portOk(v):ipOk(v)));
+  if(f==='port')e.target.closest('td').querySelector('.svc').textContent=svc(v);
+  changed();
+});
+tb.addEventListener('change',e=>{
+  const f=e.target.dataset.f;if(!f)return;
+  if(pending){undo[S.lv].push(pending);pending=JSON.stringify(acl())}
+  if(e.target.tagName==='SELECT'){const i=+e.target.closest('tr').dataset.i;acl()[i][f]=e.target.value;if(f==='proto'&&e.target.value==='icmp')acl()[i].port='';changed();renderTable();const n=$(`r${i}-${f}`);if(n)n.focus()}
+  save();
+});
+tb.addEventListener('click',e=>{
+  const b=e.target.closest('[data-a]');if(!b||busy)return;
+  const i=+b.closest('tr').dataset.i,a=acl(),act=b.dataset.a;snap();
+  if(act==='del')a.splice(i,1);
+  else{const j=act==='up'?i-1:i+1;[a[i],a[j]]=[a[j],a[i]]}
+  changed();renderTable();
+  const f=$(`r${act==='del'?Math.min(i,a.length-1):(act==='up'?i-1:i+1)}-dir`);if(f)f.closest('tr').querySelector(`[data-a="${act==='del'?'del':act}"]:not(:disabled)`)?.focus();
+});
+$('add').addEventListener('click',()=>{if(busy)return;snap();const a=acl(),last=a[a.length-1];a.push({dir:last?last.dir:(S.lv===1?'out':'in'),proto:'tcp',src:'',dst:'',port:'',act:'permit'});changed();renderTable();$(`r${a.length-1}-dir`).focus()});
+$('undo').addEventListener('click',()=>{if(busy||!undo[S.lv].length)return;S.acls[S.lv]=JSON.parse(undo[S.lv].pop());changed();renderTable()});
+$('reset').addEventListener('click',()=>{$('resetAsk').hidden=false;$('resetYes').focus()});
+$('resetNo').addEventListener('click',()=>{$('resetAsk').hidden=true});
+$('resetYes').addEventListener('click',()=>{snap();S.acls[S.lv]=clone(L().starter);S.logs[S.lv]=[];$('resetAsk').hidden=true;changed();renderTable();renderLog()});
+$('pproto').addEventListener('change',packetUI);
+$('pport').addEventListener('input',packetUI);
+
+function showResult(cls,html){const r=$('result');r.className=cls;r.innerHTML=html}
+$('send').addEventListener('click',async()=>{
+  if(busy)return;
+  const a=acl();
+  if(!a.every(ruleOk))return showResult('err','<b>Fix the red fields first.</b>An IP address looks like 10.0.1.10, and a port is a number from 1 to 65535. Leave a field blank for Any.');
+  const p={dir:$('pdir').value,proto:$('pproto').value,src:$('psrc').value.trim(),dst:$('pdst').value.trim(),port:$('pport').value.trim()};
+  if(!ipOk(p.src)||!norm(p.src)||!ipOk(p.dst)||!norm(p.dst))return showResult('err','<b>The packet needs real IP addresses.</b>A packet always has one source IP and one destination IP, such as 10.0.1.10.');
+  if(p.proto!=='icmp'&&(!norm(p.port)||!portOk(p.port)))return showResult('err','<b>The packet needs a destination port.</b>TCP and UDP packets always go to one port, such as 443.');
+  if(p.proto==='icmp')p.port='';else p.port=String(+p.port);
+  busy=true;$('send').disabled=true;changed();
+  showResult('','Checking rules from the top&#8230;');
+  let hit=-1;
+  const rows=[...tb.querySelectorAll('tr[data-i]')],ir=tb.querySelector('[data-imp]'),ist=ir.querySelector('.st');
+  const mark=(tr,st,k,cls,text)=>{trace[k]={cls,text};tr.className=(tr===ir?'imp ':'')+cls;st.textContent=text};
+  for(let i=0;i<a.length;i++){
+    const tr=rows[i],st=tr.querySelector('.st');
+    mark(tr,st,i,'checking','Checking');await wait(420);
+    const w=why(a[i],p);
+    if(!w){hit=i;mark(tr,st,i,`match ${a[i].act}`,`Match: ${ACT[a[i].act]}`);
+      for(let j=i+1;j<a.length;j++)mark(rows[j],rows[j].querySelector('.st'),j,'skip','Not checked');
+      mark(ir,ist,a.length,'skip','Not checked');
+      break}
+    mark(tr,st,i,'no',`No: ${w}`);
+  }
+  if(hit<0){mark(ir,ist,a.length,'checking','Checking');await wait(420);mark(ir,ist,a.length,'match deny','Match: Deny')}
+  const act=hit<0?'deny':a[hit].act,n=hit<0?a.length:hit;
+  if(hit<0)showResult('deny',`<b>Denied by rule ${n+1}, the implicit deny</b>No rule above it matched this packet, so the implicit deny at the bottom blocks it.`);
+  else showResult(act,`<b>${act==='permit'?'Permitted':'Denied'} by rule ${n+1}</b>Rule ${n+1} is the first rule that matches this packet, so the firewall ${act==='permit'?'lets it through':'blocks it'}. Rules below it were not checked.`);
+  S.logs[S.lv].unshift({p,act,i:n,imp:hit<0});S.logs[S.lv]=S.logs[S.lv].slice(0,40);save();renderLog();
+  busy=false;$('send').disabled=false;
+});
+$('clearLog').addEventListener('click',()=>{S.logs[S.lv]=[];save();renderLog()});
+$('check').addEventListener('click',()=>{
+  const a=acl();
+  if(!a.every(ruleOk)){$('checkSum').textContent='Fix the red fields first.';return}
+  const n=L().reqs.length,res=[];
+  for(let r=0;r<n;r++)res.push(L().tests.filter(t=>t[0]===r).every(([,dir,proto,src,dst,port,exp])=>evaluate(a,{dir,proto,src,dst,port:String(port)}).act===exp));
+  S.checks[S.lv]=res;save();renderCheck();
+});
+const fmtRule=(r,i)=>`${i+1}. ${DIR[r.dir]} | ${PROTO[r.proto]} | source ${norm(r.src)||'any'} | destination ${norm(r.dst)||'any'} | port ${r.proto==='icmp'?'none':(norm(r.port)||'any')} | ${ACT[r.act]}`;
+$('copy').addEventListener('click',async()=>{
+  const l=L(),c=S.checks[S.lv],log=S.logs[S.lv];
+  const txt=[`Name: ${S.who.trim()||'(not entered)'}`,`Level ${S.lv+1}: ${l.title}`,'','My ACL:',...acl().map(fmtRule),`${acl().length+1}. Implicit deny (always last) | Both directions | Any | source any | destination any | port any | Deny`,'',
+    c?`Requirement check: ${c.filter(Boolean).length} of ${c.length} met`:'Requirement check: not run','',
+    `Test packets I sent (${log.length}):`,...log.slice().reverse().map(e=>`- ${fmtPkt(e.p)} -> ${e.act==='none'?'no rule matched':`${ACT[e.act]} by rule ${e.i+1}${e.imp?' (implicit deny)':''}`}`)].join('\n');
+  const out=$('copyOut');out.value=txt;
+  try{await navigator.clipboard.writeText(txt);$('copyMsg').textContent='Copied. Paste it into Schoology.';out.hidden=false}
+  catch(e){out.hidden=false;out.focus();out.select();$('copyMsg').textContent='Press Ctrl+C (or Cmd+C) to copy the selected text.'}
+});
+window.__fw={LV,evaluate};
+renderAll();
+}
+</script>
+</body>
+</html>
